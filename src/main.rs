@@ -11,9 +11,15 @@ use tracing::{error, info, Level};
 
 #[derive(serde::Deserialize)]
 struct Config {
-    github_token: String,
+    github_webhook_secret: String,
     discord_webhook: String,
     discord_bot_webhook: String,
+    #[serde(default = "default_port")]
+    port: u16,
+}
+
+fn default_port() -> u16 {
+    3000
 }
 
 #[derive(Clone)]
@@ -54,10 +60,10 @@ async fn main() -> anyhow::Result<()> {
                 normal: config.discord_webhook,
                 bot: config.discord_bot_webhook,
             },
-            github_token: GithubToken(Arc::new(config.github_token)),
+            github_token: GithubToken(Arc::new(config.github_webhook_secret)),
         });
 
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3000").await?;
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", config.port)).await?;
     let addr = listener.local_addr()?;
     info!(?addr, "listening");
     axum::serve(listener, app)
