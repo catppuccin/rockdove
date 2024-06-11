@@ -4,6 +4,11 @@ version = "0.3.0"
 edition = "2021"
 repository = "https://github.com/catppuccin/weebhook"
 
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+
 [dependencies]
 anyhow = "1.0.86"
 axum = "0.7.5"

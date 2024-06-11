@@ -19,7 +19,7 @@ struct Config {
     port: u16,
 }
 
-fn default_port() -> u16 {
+const fn default_port() -> u16 {
     3000
 }
 
@@ -239,6 +239,7 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
     let mut embed = EmbedBuilder::default();
 
     if e.action == "opened" {
+        #[allow(clippy::unreadable_literal)]
         if e.issue.is_some() {
             embed.color(0xeb6420);
         } else if e.pull_request.is_some() {
@@ -339,10 +340,13 @@ fn embed_author(user: &User) -> serde_json::Value {
 async fn send_hook(e: &serde_json::Value, hook: &str) {
     match reqwest::Client::new().post(hook).json(e).send().await {
         Err(e) => error!(%e, "failed to send hook"),
-        Ok(r) => match r.error_for_status() {
-            Err(e) => error!(%e, "hook failed"),
-            Ok(_) => info!("hook sent"),
-        },
+        Ok(r) => {
+            if let Err(e) = r.error_for_status() {
+                error!(%e, "hook failed");
+            } else {
+                info!("hook sent");
+            }
+        }
     }
 }
 
