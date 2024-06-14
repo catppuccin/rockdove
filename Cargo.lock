@@ -939,6 +939,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "rockdove"
+version = "0.4.0"
+dependencies = [
+ "anyhow",
+ "axum",
+ "axum-github-webhook-extract",
+ "envy",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tower-http",
+ "tracing",
+ "tracing-subscriber",
+]
+
+[[package]]
 name = "rustc-demangle"
 version = "0.1.24"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1510,23 +1527,6 @@ checksum = "77afa9a11836342370f4817622a2f0f418b134426d91a82dfb48f532d2ec13ef"
 dependencies = [
  "js-sys",
  "wasm-bindgen",
-]
-
-[[package]]
-name = "weebhook"
-version = "0.4.0"
-dependencies = [
- "anyhow",
- "axum",
- "axum-github-webhook-extract",
- "envy",
- "reqwest",
- "serde",
- "serde_json",
- "tokio",
- "tower-http",
- "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]
