@@ -1,4 +1,4 @@
-# weebhook
+# rockdove
 
 filter & redirect github webhooks
 
