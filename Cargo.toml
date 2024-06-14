@@ -1,8 +1,12 @@
 [package]
-name = "rockdove"
+name = "catppuccin-rockdove"
 version = "0.4.0"
 edition = "2021"
 repository = "https://github.com/catppuccin/rockdove"
+
+[[bin]]
+name = "rockdove"
+path = "src/main.rs"
 
 [lints.clippy]
 all = "warn"
