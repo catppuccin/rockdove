@@ -23,6 +23,8 @@ const fn default_port() -> u16 {
     3000
 }
 
+const MAX_DESCRIPTION_LENGTH: usize = 640;
+
 #[derive(Clone)]
 struct DiscordHooks {
     normal: String,
@@ -103,7 +105,7 @@ struct Repository {
     private: bool,
 }
 
-#[derive(Clone, serde::Deserialize)]
+#[derive(Clone, Debug, serde::Deserialize)]
 struct User {
     login: String,
     avatar_url: String,
@@ -192,7 +194,7 @@ async fn webhook(State(app_state): State<AppState>, GithubEvent(e): GithubEvent<
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 struct EmbedBuilder {
     title: Option<String>,
     url: Option<String>,
@@ -266,13 +268,7 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
             #[allow(clippy::unreadable_literal)]
             embed.color(0xe68d60);
             embed.url(comment.html_url.clone());
-
-            // limit comment length to 420 characters
-            if comment.body.len() > 420 {
-                embed.description(format!("{}...", &comment.body[..420 - 3]));
-            } else {
-                embed.description(comment.body.clone());
-            }
+            embed.description(comment.body.clone());
         } else {
             return Ok(None);
         }
@@ -349,6 +345,14 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
         return Ok(None);
     }
 
+    // Limit description length to make sure it doesn't make scrolling the Discord channel an
+    // absolute pain
+    if let Some(ref description) = embed.description {
+        if description.len() > MAX_DESCRIPTION_LENGTH.into() {
+            embed.description(format!("{}...", &description[..MAX_DESCRIPTION_LENGTH - 3]));
+        }
+    }
+
     Ok(Some(embed.try_build()?))
 }
 
@@ -407,5 +411,33 @@ mod tests {
         let e: Event = serde_json::from_str(payload).unwrap();
         let msg = make_discord_message(&e).unwrap();
         assert!(msg.is_none());
+    }
+
+    #[test]
+    fn test_bot_pull_request_opened() {
+        let payload = include_str!("../fixtures/bot_pull_request_opened.json");
+        let e: Event = serde_json::from_str(payload).unwrap();
+        let msg = make_discord_message(&e).unwrap().unwrap();
+        assert_eq!(
+            msg["embeds"][0]["title"].as_str().unwrap(),
+            "[catppuccin-rfc/cli-old] Pull request opened: #1 chore: Configure Renovate"
+        );
+    }
+
+    #[test]
+    fn test_limit_description_on_pull_request() {
+        let payload = include_str!("../fixtures/bot_pull_request_opened.json");
+        let e: Event = serde_json::from_str(payload).unwrap();
+        let msg = make_discord_message(&e).unwrap().unwrap();
+        assert_eq!(
+            msg["embeds"][0]["description"]
+                .as_str()
+                .unwrap()
+                .split_once("!")
+                .unwrap()
+                .0,
+            "Welcome to [Renovate](https://redirect.github.com/renovatebot/renovate)"
+        );
+        assert_eq!(msg["embeds"][0]["description"].as_str().unwrap().len(), 640)
     }
 }
