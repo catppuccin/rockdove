@@ -82,12 +82,14 @@ enum HookTarget {
     None,
 }
 
+// https://docs.github.com/en/webhooks/webhook-events-and-payloads
 #[derive(serde::Deserialize)]
 struct Event {
     action: String,
     sender: User,
     repository: Repository,
     issue: Option<Issue>,
+    comment: Option<Comment>,
     pull_request: Option<PullRequest>,
     release: Option<Release>,
     changes: Option<Changes>,
@@ -110,11 +112,16 @@ struct User {
     sender_type: String,
 }
 
+#[derive(Clone, serde::Deserialize)]
+struct Comment {
+    body: String,
+    html_url: String,
+}
+
 #[derive(serde::Deserialize)]
 struct Issue {
     title: String,
     number: u64,
-    user: User,
     html_url: String,
     body: Option<String>,
 }
@@ -123,7 +130,6 @@ struct Issue {
 struct PullRequest {
     title: String,
     number: u64,
-    user: User,
     html_url: String,
     body: Option<String>,
     merged_at: Option<String>,
@@ -133,7 +139,6 @@ struct PullRequest {
 struct Release {
     html_url: String,
     name: String,
-    author: User,
 }
 
 #[derive(serde::Deserialize)]
@@ -247,7 +252,31 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
         }
     }
 
-    if let Some(issue) = &e.issue {
+    embed.author(e.sender.clone());
+
+    if let Some(comment) = &e.comment {
+        if e.action != "created" {
+            return Ok(None);
+        }
+        if let Some(issue) = &e.issue {
+            embed.title(format!(
+                "[{}] New comment on issue #{}: {}",
+                e.repository.full_name, issue.number, issue.title
+            ));
+            #[allow(clippy::unreadable_literal)]
+            embed.color(0xe68d60);
+            embed.url(comment.html_url.clone());
+
+            // limit comment length to 420 characters
+            if comment.body.len() > 420 {
+                embed.description(format!("{}...", &comment.body[..420 - 3]));
+            } else {
+                embed.description(comment.body.clone());
+            }
+        } else {
+            return Ok(None);
+        }
+    } else if let Some(issue) = &e.issue {
         embed.title(format!(
             "[{}] Issue {}: #{} {}",
             e.repository.full_name, e.action, issue.number, issue.title
@@ -260,7 +289,6 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
         }
 
         embed.url(issue.html_url.clone());
-        embed.author(issue.user.clone());
     } else if let Some(pull_request) = &e.pull_request {
         let action = if e.action == "closed" && pull_request.merged_at.is_some() {
             "merged"
@@ -279,7 +307,6 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
         }
 
         embed.url(pull_request.html_url.clone());
-        embed.author(pull_request.user.clone());
     } else if let Some(release) = &e.release {
         if e.action != "released" {
             return Ok(None);
@@ -290,7 +317,6 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
             e.repository.full_name, release.name
         ));
         embed.url(release.html_url.clone());
-        embed.author(release.author.clone());
     } else if let Some(changes) = &e.changes {
         if let Some(ChangesOwner {
             from: ChangesOwnerFrom { user },
@@ -301,7 +327,6 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
                 e.repository.full_name, user.login, e.repository.name
             ));
             embed.url(e.repository.html_url.clone());
-            embed.author(user.clone());
         } else if let Some(ChangesRepository {
             name: ChangesRepositoryName { from },
         }) = &changes.repository
@@ -311,7 +336,6 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
                 e.repository.full_name, from
             ));
             embed.url(e.repository.html_url.clone());
-            embed.author(e.sender.clone());
         } else {
             return Ok(None);
         }
@@ -321,7 +345,6 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
             e.repository.full_name, e.action
         ));
         embed.url(e.repository.html_url.clone());
-        embed.author(e.sender.clone());
     } else {
         return Ok(None);
     }
@@ -361,4 +384,28 @@ fn hook_target(e: &Event) -> HookTarget {
     }
 
     HookTarget::Normal
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{make_discord_message, Event};
+
+    #[test]
+    fn test_comment_created() {
+        let payload = include_str!("../fixtures/comment_created.json");
+        let e: Event = serde_json::from_str(payload).unwrap();
+        let msg = make_discord_message(&e).unwrap().unwrap();
+        assert_eq!(
+            msg["embeds"][0]["title"].as_str().unwrap(),
+            "[catppuccin/java] New comment on issue #20: Reconsider OSSRH Authentication"
+        );
+    }
+
+    #[test]
+    fn test_comment_deleted() {
+        let payload = include_str!("../fixtures/comment_deleted.json");
+        let e: Event = serde_json::from_str(payload).unwrap();
+        let msg = make_discord_message(&e).unwrap();
+        assert!(msg.is_none());
+    }
 }
