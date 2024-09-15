@@ -279,6 +279,8 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
 
     embed.author(e.sender.clone());
 
+    let display_action = e.action.replace('-', " ");
+
     if let Some(comment) = &e.comment {
         if e.action != "created" {
             return Ok(None);
@@ -298,7 +300,7 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
     } else if let Some(issue) = &e.issue {
         embed.title(&format!(
             "[{}] Issue {}: #{} {}",
-            e.repository.full_name, e.action, issue.number, issue.title
+            e.repository.full_name, display_action, issue.number, issue.title
         ));
 
         if e.action == "opened" {
@@ -312,8 +314,9 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
         let action = if e.action == "closed" && pull_request.merged_at.is_some() {
             "merged"
         } else {
-            e.action.as_str()
+            &display_action
         };
+
         embed.title(&format!(
             "[{}] Pull request {}: #{} {}",
             e.repository.full_name, action, pull_request.number, pull_request.title
