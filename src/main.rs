@@ -10,6 +10,10 @@ use serde_json::json;
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::{error, info, Level};
 
+const MAX_TITLE_LENGTH: usize = 100;
+const MAX_DESCRIPTION_LENGTH: usize = 640;
+const MAX_AUTHOR_NAME_LENGTH: usize = 256;
+
 #[derive(serde::Deserialize)]
 struct Config {
     github_webhook_secret: String,
@@ -22,8 +26,6 @@ struct Config {
 const fn default_port() -> u16 {
     3000
 }
-
-const MAX_DESCRIPTION_LENGTH: usize = 640;
 
 #[derive(Clone)]
 struct DiscordHooks {
@@ -205,7 +207,7 @@ struct EmbedBuilder {
 
 impl EmbedBuilder {
     fn title(&mut self, title: String) -> &Self {
-        self.title = Some(title);
+        self.title = Some(limit_text_length(&title, MAX_TITLE_LENGTH));
         self
     }
 
@@ -220,7 +222,7 @@ impl EmbedBuilder {
     }
 
     fn description(&mut self, description: String) -> &Self {
-        self.description = Some(description);
+        self.description = Some(limit_text_length(&description, MAX_DESCRIPTION_LENGTH));
         self
     }
 
@@ -239,6 +241,22 @@ impl EmbedBuilder {
                 "author": embed_author(&self.author.ok_or_else(|| anyhow::anyhow!("missing author"))?),
             }],
         }))
+    }
+}
+
+fn embed_author(user: &User) -> serde_json::Value {
+    json!({
+        "name": limit_text_length(&user.login, MAX_AUTHOR_NAME_LENGTH),
+        "url": user.html_url,
+        "icon_url": user.avatar_url,
+    })
+}
+
+fn limit_text_length(text: &str, max_length: usize) -> String {
+    if text.len() > max_length {
+        format!("{}...", &text[..max_length - 3])
+    } else {
+        text.to_string()
     }
 }
 
@@ -345,23 +363,7 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
         return Ok(None);
     }
 
-    // Limit description length to make sure it doesn't make scrolling the Discord channel an
-    // absolute pain
-    if let Some(ref description) = embed.description {
-        if description.len() > MAX_DESCRIPTION_LENGTH.into() {
-            embed.description(format!("{}...", &description[..MAX_DESCRIPTION_LENGTH - 3]));
-        }
-    }
-
     Ok(Some(embed.try_build()?))
-}
-
-fn embed_author(user: &User) -> serde_json::Value {
-    json!({
-        "name": user.login,
-        "url": user.html_url,
-        "icon_url": user.avatar_url,
-    })
 }
 
 async fn send_hook(e: &serde_json::Value, hook: &str) {
