@@ -172,6 +172,11 @@ struct ChangesRepositoryName {
 }
 
 async fn webhook(State(app_state): State<AppState>, GithubEvent(e): GithubEvent<Event>) {
+    if e.action == "edited" {
+        info!("ignoring edited event");
+        return;
+    }
+
     match hook_target(&e) {
         HookTarget::Normal => {
             info!(
