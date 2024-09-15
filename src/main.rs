@@ -206,13 +206,13 @@ struct EmbedBuilder {
 }
 
 impl EmbedBuilder {
-    fn title(&mut self, title: String) -> &Self {
-        self.title = Some(limit_text_length(&title, MAX_TITLE_LENGTH));
+    fn title(&mut self, title: &str) -> &Self {
+        self.title = Some(limit_text_length(title, MAX_TITLE_LENGTH));
         self
     }
 
-    fn url(&mut self, url: String) -> &Self {
-        self.url = Some(url);
+    fn url(&mut self, url: &str) -> &Self {
+        self.url = Some(url.to_string());
         self
     }
 
@@ -221,8 +221,8 @@ impl EmbedBuilder {
         self
     }
 
-    fn description(&mut self, description: String) -> &Self {
-        self.description = Some(limit_text_length(&description, MAX_DESCRIPTION_LENGTH));
+    fn description(&mut self, description: &str) -> &Self {
+        self.description = Some(limit_text_length(description, MAX_DESCRIPTION_LENGTH));
         self
     }
 
@@ -279,86 +279,86 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
             return Ok(None);
         }
         if let Some(issue) = &e.issue {
-            embed.title(format!(
+            embed.title(&format!(
                 "[{}] New comment on issue #{}: {}",
                 e.repository.full_name, issue.number, issue.title
             ));
             #[allow(clippy::unreadable_literal)]
             embed.color(0xe68d60);
-            embed.url(comment.html_url.clone());
-            embed.description(comment.body.clone());
+            embed.url(&comment.html_url);
+            embed.description(&comment.body);
         } else {
             return Ok(None);
         }
     } else if let Some(issue) = &e.issue {
-        embed.title(format!(
+        embed.title(&format!(
             "[{}] Issue {}: #{} {}",
             e.repository.full_name, e.action, issue.number, issue.title
         ));
 
         if e.action == "opened" {
             if let Some(body) = &issue.body {
-                embed.description(body.clone());
+                embed.description(body);
             }
         }
 
-        embed.url(issue.html_url.clone());
+        embed.url(&issue.html_url);
     } else if let Some(pull_request) = &e.pull_request {
         let action = if e.action == "closed" && pull_request.merged_at.is_some() {
             "merged"
         } else {
             e.action.as_str()
         };
-        embed.title(format!(
+        embed.title(&format!(
             "[{}] Pull request {}: #{} {}",
             e.repository.full_name, action, pull_request.number, pull_request.title
         ));
 
         if e.action == "opened" {
             if let Some(body) = &pull_request.body {
-                embed.description(body.clone());
+                embed.description(body);
             }
         }
 
-        embed.url(pull_request.html_url.clone());
+        embed.url(&pull_request.html_url);
     } else if let Some(release) = &e.release {
         if e.action != "released" {
             return Ok(None);
         }
 
-        embed.title(format!(
+        embed.title(&format!(
             "[{}] New release published: {}",
             e.repository.full_name, release.name
         ));
-        embed.url(release.html_url.clone());
+        embed.url(&release.html_url);
     } else if let Some(changes) = &e.changes {
         if let Some(ChangesOwner {
             from: ChangesOwnerFrom { user },
         }) = &changes.owner
         {
-            embed.title(format!(
+            embed.title(&format!(
                 "[{}] Repository transferred from {}/{}",
                 e.repository.full_name, user.login, e.repository.name
             ));
-            embed.url(e.repository.html_url.clone());
+            embed.url(&e.repository.html_url);
         } else if let Some(ChangesRepository {
             name: ChangesRepositoryName { from },
         }) = &changes.repository
         {
-            embed.title(format!(
+            embed.title(&format!(
                 "[{}] Repository renamed from {}",
                 e.repository.full_name, from
             ));
-            embed.url(e.repository.html_url.clone());
+            embed.url(&e.repository.html_url);
         } else {
             return Ok(None);
         }
     } else if matches!(e.action.as_str(), "archived" | "unarchived") {
-        embed.title(format!(
+        embed.title(&format!(
             "[{}] Repository {}",
             e.repository.full_name, e.action
         ));
-        embed.url(e.repository.html_url.clone());
+        embed.url(&e.repository.html_url);
     } else {
         return Ok(None);
     }
@@ -435,11 +435,11 @@ mod tests {
             msg["embeds"][0]["description"]
                 .as_str()
                 .unwrap()
-                .split_once("!")
+                .split_once('!')
                 .unwrap()
                 .0,
             "Welcome to [Renovate](https://redirect.github.com/renovatebot/renovate)"
         );
-        assert_eq!(msg["embeds"][0]["description"].as_str().unwrap().len(), 640)
+        assert_eq!(msg["embeds"][0]["description"].as_str().unwrap().len(), 640);
     }
 }
