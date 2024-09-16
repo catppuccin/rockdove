@@ -279,7 +279,7 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
 
     embed.author(e.sender.clone());
 
-    let display_action = e.action.replace('-', " ");
+    let display_action = e.action.replace('_', " ");
 
     if let Some(comment) = &e.comment {
         if e.action != "created" {
