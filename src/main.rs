@@ -311,7 +311,7 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
 
         embed.url(&issue.html_url);
     } else if let Some(pull_request) = &e.pull_request {
-        if e.action != "opened" || e.action != "closed" || e.action != "reopened" {
+        if e.action != "opened" && e.action != "closed" && e.action != "reopened" {
             return Ok(None);
         }
 
@@ -453,5 +453,13 @@ mod tests {
             "Welcome to [Renovate](https://redirect.github.com/renovatebot/renovate)"
         );
         assert_eq!(msg["embeds"][0]["description"].as_str().unwrap().len(), 640);
+    }
+
+    #[test]
+    fn test_ignore_pr_events() {
+        let payload = include_str!("../fixtures/pull_request_synchronize.json");
+        let e: Event = serde_json::from_str(payload).unwrap();
+        let msg = make_discord_message(&e).unwrap();
+        assert!(msg.is_none());
     }
 }

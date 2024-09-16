@@ -1,4 +1,4 @@
-name: Lint
+name: Lint & Test
 
 on:
   pull_request:
@@ -26,3 +26,6 @@ jobs:
 
       - name: rustfmt check
         run: cargo fmt --all --check
+
+      - name: test
+        run: cargo test
