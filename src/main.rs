@@ -311,6 +311,10 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
 
         embed.url(&issue.html_url);
     } else if let Some(pull_request) = &e.pull_request {
+        if e.action != "opened" || e.action != "closed" || e.action != "reopened" {
+            return Ok(None);
+        }
+
         let action = if e.action == "closed" && pull_request.merged_at.is_some() {
             "merged"
         } else {
