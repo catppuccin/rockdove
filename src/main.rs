@@ -265,6 +265,7 @@ fn limit_text_length(text: &str, max_length: usize) -> String {
     }
 }
 
+#[allow(clippy::too_many_lines)]
 fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> {
     let mut embed = EmbedBuilder::default();
 
