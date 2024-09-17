@@ -298,6 +298,14 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
             return Ok(None);
         }
     } else if let Some(issue) = &e.issue {
+        if e.action != "opened"
+            && e.action != "closed"
+            && e.action != "reopened"
+            && e.action != "transferred"
+        {
+            return Ok(None);
+        }
+
         embed.title(&format!(
             "[{}] Issue {}: #{} {}",
             e.repository.full_name, display_action, issue.number, issue.title
@@ -458,6 +466,25 @@ mod tests {
     #[test]
     fn test_ignore_pr_events() {
         let payload = include_str!("../fixtures/pull_request_synchronize.json");
+        let e: Event = serde_json::from_str(payload).unwrap();
+        let msg = make_discord_message(&e).unwrap();
+        assert!(msg.is_none());
+    }
+
+    #[test]
+    fn test_issue_opened() {
+        let payload = include_str!("../fixtures/issue_opened.json");
+        let e: Event = serde_json::from_str(payload).unwrap();
+        let msg = make_discord_message(&e).unwrap().unwrap();
+        assert_eq!(
+            msg["embeds"][0]["title"].as_str().unwrap(),
+            "[catppuccin/userstyles] Issue opened: #1318 LinkedIn: Profile picture edition icons and text is u..."
+        );
+    }
+
+    #[test]
+    fn test_ignore_issue_events() {
+        let payload = include_str!("../fixtures/issue_unassigned.json");
         let e: Event = serde_json::from_str(payload).unwrap();
         let msg = make_discord_message(&e).unwrap();
         assert!(msg.is_none());
