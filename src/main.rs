@@ -95,6 +95,7 @@ struct Event {
     issue: Option<Issue>,
     comment: Option<Comment>,
     pull_request: Option<PullRequest>,
+    review: Option<PullRequestReview>,
     release: Option<Release>,
     changes: Option<Changes>,
 }
@@ -137,6 +138,13 @@ struct PullRequest {
     html_url: String,
     body: Option<String>,
     merged_at: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+struct PullRequestReview {
+    html_url: String,
+    body: Option<String>,
+    state: String,
 }
 
 #[derive(serde::Deserialize)]
@@ -320,28 +328,52 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
 
         embed.url(&issue.html_url);
     } else if let Some(pull_request) = &e.pull_request {
-        if e.action != "opened" && e.action != "closed" && e.action != "reopened" {
-            return Ok(None);
-        }
+        if let Some(pull_request_review) = &e.review {
+            if e.action != "submitted" {
+                return Ok(None);
+            }
 
-        let action = if e.action == "closed" && pull_request.merged_at.is_some() {
-            "merged"
-        } else {
-            &display_action
-        };
+            let action = match pull_request_review.state.as_str() {
+                "approved" => "approved",
+                "changes_requested" => "changes requested",
+                "commented" => "reviewed",
+                _ => pull_request_review.state.as_str(),
+            };
 
-        embed.title(&format!(
-            "[{}] Pull request {}: #{} {}",
-            e.repository.full_name, action, pull_request.number, pull_request.title
-        ));
+            embed.title(&format!(
+                "[{}] Pull request {}: #{} {}",
+                e.repository.full_name, action, pull_request.number, pull_request.title
+            ));
 
-        if e.action == "opened" {
-            if let Some(body) = &pull_request.body {
+            if let Some(body) = &pull_request_review.body {
                 embed.description(body);
             }
-        }
 
-        embed.url(&pull_request.html_url);
+            embed.url(&pull_request_review.html_url);
+        } else {
+            if e.action != "opened" && e.action != "closed" && e.action != "reopened" {
+                return Ok(None);
+            }
+
+            let action = if e.action == "closed" && pull_request.merged_at.is_some() {
+                "merged"
+            } else {
+                &display_action
+            };
+
+            embed.title(&format!(
+                "[{}] Pull request {}: #{} {}",
+                e.repository.full_name, action, pull_request.number, pull_request.title
+            ));
+
+            if e.action == "opened" {
+                if let Some(body) = &pull_request.body {
+                    embed.description(body);
+                }
+            }
+
+            embed.url(&pull_request.html_url);
+        }
     } else if let Some(release) = &e.release {
         if e.action != "released" {
             return Ok(None);
@@ -489,5 +521,44 @@ mod tests {
         let e: Event = serde_json::from_str(payload).unwrap();
         let msg = make_discord_message(&e).unwrap();
         assert!(msg.is_none());
+    }
+
+    mod pull_request_review {
+        use crate::{make_discord_message, Event};
+
+        #[test]
+        fn approved() {
+            let payload = include_str!("../fixtures/pull_request_review/approved.json");
+            let e: Event = serde_json::from_str(payload).unwrap();
+            let msg = make_discord_message(&e).unwrap().unwrap();
+            assert_eq!(
+                msg["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc/polybar] Pull request approved: #3 chore: Configure Renovate"
+            );
+        }
+
+        #[test]
+        fn changes_requested() {
+            let payload = include_str!("../fixtures/pull_request_review/changes_requested.json");
+            let e: Event = serde_json::from_str(payload).unwrap();
+            let msg = make_discord_message(&e).unwrap().unwrap();
+            assert_eq!(
+            msg["embeds"][0]["title"].as_str().unwrap(),
+            "[catppuccin-rfc/polybar] Pull request changes requested: #3 chore: Configure Renovate"
+        );
+            assert_eq!(msg["embeds"][0]["description"].as_str().unwrap(), "test");
+        }
+
+        #[test]
+        fn commented() {
+            let payload = include_str!("../fixtures/pull_request_review/commented.json");
+            let e: Event = serde_json::from_str(payload).unwrap();
+            let msg = make_discord_message(&e).unwrap().unwrap();
+            assert_eq!(
+                msg["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc/polybar] Pull request reviewed: #3 chore: Configure Renovate"
+            );
+            assert_eq!(msg["embeds"][0]["description"].as_str().unwrap(), "normal");
+        }
     }
 }
