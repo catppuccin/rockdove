@@ -1,7 +1,11 @@
-use std::sync::Arc;
+use std::{
+    hash::{DefaultHasher, Hash as _, Hasher as _},
+    sync::Arc,
+};
 
 use axum::{
     extract::{FromRef, State},
+    http::HeaderMap,
     routing::post,
     Router,
 };
@@ -201,11 +205,20 @@ struct ChangesRepositoryName {
     from: String,
 }
 
-async fn webhook(State(app_state): State<AppState>, GithubEvent(e): GithubEvent<Event>) {
+async fn webhook(
+    State(app_state): State<AppState>,
+    headers: HeaderMap,
+    GithubEvent(e): GithubEvent<Event>,
+) {
     if e.action == "edited" {
         info!("ignoring edited event");
         return;
     }
+
+    let Some(Ok(event_type)) = headers.get("X-GitHub-Event").map(|v| v.to_str()) else {
+        error!("missing or invalid X-GitHub-Event header");
+        return;
+    };
 
     match hook_target(&e) {
         HookTarget::Normal => {
@@ -213,7 +226,7 @@ async fn webhook(State(app_state): State<AppState>, GithubEvent(e): GithubEvent<
                 hook = &app_state.discord_hooks.normal,
                 "sending normal hook"
             );
-            match make_discord_message(&e) {
+            match make_discord_message(event_type, &e) {
                 Ok(Some(msg)) => send_hook(&msg, &app_state.discord_hooks.normal).await,
                 Ok(None) => info!("no embed created - ignoring event"),
                 Err(e) => error!(%e, "failed to make discord message"),
@@ -221,7 +234,7 @@ async fn webhook(State(app_state): State<AppState>, GithubEvent(e): GithubEvent<
         }
         HookTarget::Bot => {
             info!(hook = &app_state.discord_hooks.bot, "sending bot hook");
-            match make_discord_message(&e) {
+            match make_discord_message(event_type, &e) {
                 Ok(Some(msg)) => send_hook(&msg, &app_state.discord_hooks.bot).await,
                 Ok(None) => info!("no embed created - ignoring event"),
                 Err(e) => error!(%e, "failed to make discord message"),
@@ -261,8 +274,9 @@ impl EmbedBuilder {
         self
     }
 
-    fn color(&mut self, color: u32) -> &Self {
-        self.color = Some(color);
+    fn color(&mut self, color: catppuccin::Color) -> &Self {
+        let rgb = color.rgb;
+        self.color = Some(u32::from(rgb.r) << 16 | u32::from(rgb.g) << 8 | u32::from(rgb.b));
         self
     }
 
@@ -296,18 +310,10 @@ fn limit_text_length(text: &str, max_length: usize) -> String {
 }
 
 #[allow(clippy::too_many_lines)]
-fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> {
+fn make_discord_message(event_type: &str, e: &Event) -> anyhow::Result<Option<serde_json::Value>> {
     let mut embed = EmbedBuilder::default();
 
-    if e.action == "opened" {
-        #[allow(clippy::unreadable_literal)]
-        if e.issue.is_some() {
-            embed.color(0xeb6420);
-        } else if e.pull_request.is_some() {
-            embed.color(0x009800);
-        }
-    }
-
+    embed.color(pick_color(event_type));
     embed.author(e.sender.clone());
 
     let display_action = e.action.replace('_', " ");
@@ -329,8 +335,6 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
                     "[{}] New comment on {} #{}: {}",
                     repository.full_name, action, issue.number, issue.title
                 ));
-                #[allow(clippy::unreadable_literal)]
-                embed.color(0xe68d60);
                 embed.url(&comment.html_url);
                 embed.description(&comment.body);
             } else {
@@ -465,6 +469,24 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
     Ok(Some(embed.try_build()?))
 }
 
+fn pick_color(event_type: &str) -> catppuccin::Color {
+    let options = catppuccin::PALETTE
+        .mocha
+        .colors
+        .iter()
+        .filter(|c| c.accent)
+        .collect::<Vec<_>>();
+
+    let mut hasher = DefaultHasher::new();
+    event_type.hash(&mut hasher);
+    let hash = hasher.finish();
+
+    #[allow(clippy::cast_possible_truncation)]
+    let choice = hash as usize % options.len();
+
+    *options[choice]
+}
+
 async fn send_hook(e: &serde_json::Value, hook: &str) {
     match reqwest::Client::new().post(hook).json(e).send().await {
         Err(e) => error!(%e, "failed to send hook"),
@@ -501,7 +523,7 @@ mod tests {
     fn test_bot_pull_request_opened() {
         let payload = include_str!("../fixtures/bot_pull_request_opened.json");
         let e: Event = serde_json::from_str(payload).unwrap();
-        let msg = make_discord_message(&e).unwrap().unwrap();
+        let msg = make_discord_message("pull_request", &e).unwrap().unwrap();
         assert_eq!(
             msg["embeds"][0]["title"].as_str().unwrap(),
             "[catppuccin-rfc/cli-old] Pull request opened: #1 chore: Configure Renovate"
@@ -512,7 +534,7 @@ mod tests {
     fn test_limit_description_on_pull_request() {
         let payload = include_str!("../fixtures/bot_pull_request_opened.json");
         let e: Event = serde_json::from_str(payload).unwrap();
-        let msg = make_discord_message(&e).unwrap().unwrap();
+        let msg = make_discord_message("pull_request", &e).unwrap().unwrap();
         assert_eq!(
             msg["embeds"][0]["description"]
                 .as_str()
@@ -529,7 +551,7 @@ mod tests {
     fn test_ignore_pr_events() {
         let payload = include_str!("../fixtures/pull_request_synchronize.json");
         let e: Event = serde_json::from_str(payload).unwrap();
-        let msg = make_discord_message(&e).unwrap();
+        let msg = make_discord_message("pull_request", &e).unwrap();
         assert!(msg.is_none());
     }
 
@@ -537,7 +559,7 @@ mod tests {
     fn test_issue_opened() {
         let payload = include_str!("../fixtures/issue_opened.json");
         let e: Event = serde_json::from_str(payload).unwrap();
-        let msg = make_discord_message(&e).unwrap().unwrap();
+        let msg = make_discord_message("issues", &e).unwrap().unwrap();
         assert_eq!(
             msg["embeds"][0]["title"].as_str().unwrap(),
             "[catppuccin/userstyles] Issue opened: #1318 LinkedIn: Profile picture edition icons and text is u..."
@@ -548,7 +570,7 @@ mod tests {
     fn test_ignore_issue_events() {
         let payload = include_str!("../fixtures/issue_unassigned.json");
         let e: Event = serde_json::from_str(payload).unwrap();
-        let msg = make_discord_message(&e).unwrap();
+        let msg = make_discord_message("issues", &e).unwrap();
         assert!(msg.is_none());
     }
 
@@ -559,7 +581,7 @@ mod tests {
         fn created() {
             let payload = include_str!("../fixtures/issue_comment/created.json");
             let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message(&e).unwrap().unwrap();
+            let msg = make_discord_message("issue_comment", &e).unwrap().unwrap();
             assert_eq!(
                 msg["embeds"][0]["title"].as_str().unwrap(),
                 "[catppuccin/java] New comment on issue #20: Reconsider OSSRH Authentication"
@@ -570,7 +592,7 @@ mod tests {
         fn created_on_pull_request() {
             let payload = include_str!("../fixtures/issue_comment/created_on_pull_request.json");
             let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message(&e).unwrap().unwrap();
+            let msg = make_discord_message("issue_comment", &e).unwrap().unwrap();
             assert_eq!(
                 msg["embeds"][0]["title"].as_str().unwrap(),
                 "[catppuccin/userstyles] New comment on pull request #1323: feat(fontawesome): init"
@@ -581,7 +603,7 @@ mod tests {
         fn deleted() {
             let payload = include_str!("../fixtures/issue_comment/deleted.json");
             let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message(&e).unwrap();
+            let msg = make_discord_message("issue_comment", &e).unwrap();
             assert!(msg.is_none());
         }
     }
@@ -593,7 +615,9 @@ mod tests {
         fn approved() {
             let payload = include_str!("../fixtures/pull_request_review/approved.json");
             let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message(&e).unwrap().unwrap();
+            let msg = make_discord_message("pull_request_review", &e)
+                .unwrap()
+                .unwrap();
             assert_eq!(
                 msg["embeds"][0]["title"].as_str().unwrap(),
                 "[catppuccin-rfc/polybar] Pull request approved: #3 chore: Configure Renovate"
@@ -604,7 +628,9 @@ mod tests {
         fn changes_requested() {
             let payload = include_str!("../fixtures/pull_request_review/changes_requested.json");
             let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message(&e).unwrap().unwrap();
+            let msg = make_discord_message("pull_request_review", &e)
+                .unwrap()
+                .unwrap();
             assert_eq!(
             msg["embeds"][0]["title"].as_str().unwrap(),
             "[catppuccin-rfc/polybar] Pull request changes requested: #3 chore: Configure Renovate"
@@ -616,7 +642,9 @@ mod tests {
         fn commented() {
             let payload = include_str!("../fixtures/pull_request_review/commented.json");
             let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message(&e).unwrap().unwrap();
+            let msg = make_discord_message("pull_request_review", &e)
+                .unwrap()
+                .unwrap();
             assert_eq!(
                 msg["embeds"][0]["title"].as_str().unwrap(),
                 "[catppuccin-rfc/polybar] Pull request reviewed: #3 chore: Configure Renovate"
@@ -632,7 +660,7 @@ mod tests {
         fn added() {
             let payload = include_str!("../fixtures/membership/added.json");
             let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message(&e).unwrap().unwrap();
+            let msg = make_discord_message("membership", &e).unwrap().unwrap();
             assert_eq!(
                 msg["embeds"][0]["title"].as_str().unwrap(),
                 "[catppuccin-rfc/staff] Member backwardspy added"
@@ -643,7 +671,7 @@ mod tests {
         fn removed() {
             let payload = include_str!("../fixtures/membership/removed.json");
             let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message(&e).unwrap().unwrap();
+            let msg = make_discord_message("membership", &e).unwrap().unwrap();
             assert_eq!(
                 msg["embeds"][0]["title"].as_str().unwrap(),
                 "[catppuccin-rfc/staff] Member backwardspy removed"
