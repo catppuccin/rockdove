@@ -533,7 +533,6 @@ mod tests {
             );
         }
 
-        // Unsure why but it seems like the pull request comments are also being sent as issue comments?
         #[test]
         fn created_on_pull_request() {
             let payload = include_str!("../fixtures/issue_comment/created_on_pull_request.json");
