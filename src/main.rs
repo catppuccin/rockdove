@@ -91,11 +91,14 @@ enum HookTarget {
 struct Event {
     action: String,
     sender: User,
-    repository: Repository,
+    member: Option<User>,
+    repository: Option<Repository>,
     issue: Option<Issue>,
     comment: Option<Comment>,
     pull_request: Option<PullRequest>,
     review: Option<PullRequestReview>,
+    team: Option<Team>,
+    organization: Option<Organization>,
     release: Option<Release>,
     changes: Option<Changes>,
 }
@@ -159,6 +162,17 @@ struct PullRequestReview {
 struct Release {
     html_url: String,
     name: String,
+}
+
+#[derive(serde::Deserialize)]
+struct Team {
+    name: String,
+    html_url: String,
+}
+
+#[derive(serde::Deserialize)]
+struct Organization {
+    login: String,
 }
 
 #[derive(serde::Deserialize)]
@@ -298,137 +312,154 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
 
     let display_action = e.action.replace('_', " ");
 
-    if let Some(comment) = &e.comment {
-        if e.action != "created" {
-            return Ok(None);
-        }
-
-        if let Some(issue) = &e.issue {
-            let action = if issue.pull_request.is_some() {
-                "pull request"
-            } else {
-                "issue"
-            };
-
-            embed.title(&format!(
-                "[{}] New comment on {} #{}: {}",
-                e.repository.full_name, action, issue.number, issue.title
-            ));
-            #[allow(clippy::unreadable_literal)]
-            embed.color(0xe68d60);
-            embed.url(&comment.html_url);
-            embed.description(&comment.body);
-        } else {
-            return Ok(None);
-        }
-    } else if let Some(issue) = &e.issue {
-        if e.action != "opened"
-            && e.action != "closed"
-            && e.action != "reopened"
-            && e.action != "transferred"
-        {
-            return Ok(None);
-        }
-
-        embed.title(&format!(
-            "[{}] Issue {}: #{} {}",
-            e.repository.full_name, display_action, issue.number, issue.title
-        ));
-
-        if e.action == "opened" {
-            if let Some(body) = &issue.body {
-                embed.description(body);
-            }
-        }
-
-        embed.url(&issue.html_url);
-    } else if let Some(pull_request) = &e.pull_request {
-        if let Some(pull_request_review) = &e.review {
-            if e.action != "submitted" {
+    if let Some(repository) = &e.repository {
+        if let Some(comment) = &e.comment {
+            if e.action != "created" {
                 return Ok(None);
             }
 
-            let action = match pull_request_review.state.as_str() {
-                "approved" => "approved",
-                "changes_requested" => "changes requested",
-                "commented" => "reviewed",
-                _ => pull_request_review.state.as_str(),
-            };
+            if let Some(issue) = &e.issue {
+                let action = if issue.pull_request.is_some() {
+                    "pull request"
+                } else {
+                    "issue"
+                };
 
-            embed.title(&format!(
-                "[{}] Pull request {}: #{} {}",
-                e.repository.full_name, action, pull_request.number, pull_request.title
-            ));
-
-            if let Some(body) = &pull_request_review.body {
-                embed.description(body);
+                embed.title(&format!(
+                    "[{}] New comment on {} #{}: {}",
+                    repository.full_name, action, issue.number, issue.title
+                ));
+                #[allow(clippy::unreadable_literal)]
+                embed.color(0xe68d60);
+                embed.url(&comment.html_url);
+                embed.description(&comment.body);
+            } else {
+                return Ok(None);
             }
-
-            embed.url(&pull_request_review.html_url);
-        } else {
-            if e.action != "opened" && e.action != "closed" && e.action != "reopened" {
+        } else if let Some(issue) = &e.issue {
+            if e.action != "opened"
+                && e.action != "closed"
+                && e.action != "reopened"
+                && e.action != "transferred"
+            {
                 return Ok(None);
             }
 
-            let action = if e.action == "closed" && pull_request.merged_at.is_some() {
-                "merged"
-            } else {
-                &display_action
-            };
-
             embed.title(&format!(
-                "[{}] Pull request {}: #{} {}",
-                e.repository.full_name, action, pull_request.number, pull_request.title
+                "[{}] Issue {}: #{} {}",
+                repository.full_name, display_action, issue.number, issue.title
             ));
 
             if e.action == "opened" {
-                if let Some(body) = &pull_request.body {
+                if let Some(body) = &issue.body {
                     embed.description(body);
                 }
             }
 
-            embed.url(&pull_request.html_url);
-        }
-    } else if let Some(release) = &e.release {
-        if e.action != "released" {
-            return Ok(None);
-        }
+            embed.url(&issue.html_url);
+        } else if let Some(pull_request) = &e.pull_request {
+            if let Some(pull_request_review) = &e.review {
+                if e.action != "submitted" {
+                    return Ok(None);
+                }
 
-        embed.title(&format!(
-            "[{}] New release published: {}",
-            e.repository.full_name, release.name
-        ));
-        embed.url(&release.html_url);
-    } else if let Some(changes) = &e.changes {
-        if let Some(ChangesOwner {
-            from: ChangesOwnerFrom { user },
-        }) = &changes.owner
-        {
+                let action = match pull_request_review.state.as_str() {
+                    "approved" => "approved",
+                    "changes_requested" => "changes requested",
+                    "commented" => "reviewed",
+                    _ => pull_request_review.state.as_str(),
+                };
+
+                embed.title(&format!(
+                    "[{}] Pull request {}: #{} {}",
+                    repository.full_name, action, pull_request.number, pull_request.title
+                ));
+
+                if let Some(body) = &pull_request_review.body {
+                    embed.description(body);
+                }
+
+                embed.url(&pull_request_review.html_url);
+            } else {
+                if e.action != "opened" && e.action != "closed" && e.action != "reopened" {
+                    return Ok(None);
+                }
+
+                let action = if e.action == "closed" && pull_request.merged_at.is_some() {
+                    "merged"
+                } else {
+                    &display_action
+                };
+
+                embed.title(&format!(
+                    "[{}] Pull request {}: #{} {}",
+                    repository.full_name, action, pull_request.number, pull_request.title
+                ));
+
+                if e.action == "opened" {
+                    if let Some(body) = &pull_request.body {
+                        embed.description(body);
+                    }
+                }
+
+                embed.url(&pull_request.html_url);
+            }
+        } else if let Some(release) = &e.release {
+            if e.action != "released" {
+                return Ok(None);
+            }
+
             embed.title(&format!(
-                "[{}] Repository transferred from {}/{}",
-                e.repository.full_name, user.login, e.repository.name
+                "[{}] New release published: {}",
+                repository.full_name, release.name
             ));
-            embed.url(&e.repository.html_url);
-        } else if let Some(ChangesRepository {
-            name: ChangesRepositoryName { from },
-        }) = &changes.repository
-        {
+            embed.url(&release.html_url);
+        } else if let Some(changes) = &e.changes {
+            if let Some(ChangesOwner {
+                from: ChangesOwnerFrom { user },
+            }) = &changes.owner
+            {
+                embed.title(&format!(
+                    "[{}] Repository transferred from {}/{}",
+                    repository.full_name, user.login, repository.name
+                ));
+                embed.url(&repository.html_url);
+            } else if let Some(ChangesRepository {
+                name: ChangesRepositoryName { from },
+            }) = &changes.repository
+            {
+                embed.title(&format!(
+                    "[{}] Repository renamed from {}",
+                    repository.full_name, from
+                ));
+                embed.url(&repository.html_url);
+            } else {
+                return Ok(None);
+            }
+        } else if matches!(e.action.as_str(), "archived" | "unarchived") {
             embed.title(&format!(
-                "[{}] Repository renamed from {}",
-                e.repository.full_name, from
+                "[{}] Repository {}",
+                repository.full_name, e.action
             ));
-            embed.url(&e.repository.html_url);
+            embed.url(&repository.html_url);
         } else {
             return Ok(None);
         }
-    } else if matches!(e.action.as_str(), "archived" | "unarchived") {
+    } else if let Some(team) = &e.team {
+        let org = e
+            .organization
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("missing organization"))?;
+        let member = e
+            .member
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("missing member"))?;
+
         embed.title(&format!(
-            "[{}] Repository {}",
-            e.repository.full_name, e.action
+            "[{}/{}] Member {} {}",
+            org.login, team.name, member.login, e.action
         ));
-        embed.url(&e.repository.html_url);
-    } else {
-        return Ok(None);
+        embed.url(&team.html_url);
     }
 
     Ok(Some(embed.try_build()?))
@@ -452,9 +483,11 @@ fn hook_target(e: &Event) -> HookTarget {
         return HookTarget::Bot;
     }
 
-    if e.repository.private {
-        info!("ignoring private repository event");
-        return HookTarget::None;
+    if let Some(repository) = &e.repository {
+        if repository.private {
+            info!("ignoring private repository event");
+            return HookTarget::None;
+        }
     }
 
     HookTarget::Normal
@@ -589,6 +622,32 @@ mod tests {
                 "[catppuccin-rfc/polybar] Pull request reviewed: #3 chore: Configure Renovate"
             );
             assert_eq!(msg["embeds"][0]["description"].as_str().unwrap(), "normal");
+        }
+    }
+
+    mod membership {
+        use crate::{make_discord_message, Event};
+
+        #[test]
+        fn added() {
+            let payload = include_str!("../fixtures/membership/added.json");
+            let e: Event = serde_json::from_str(payload).unwrap();
+            let msg = make_discord_message(&e).unwrap().unwrap();
+            assert_eq!(
+                msg["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc/staff] Member backwardspy added"
+            );
+        }
+
+        #[test]
+        fn removed() {
+            let payload = include_str!("../fixtures/membership/removed.json");
+            let e: Event = serde_json::from_str(payload).unwrap();
+            let msg = make_discord_message(&e).unwrap().unwrap();
+            assert_eq!(
+                msg["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc/staff] Member backwardspy removed"
+            );
         }
     }
 }
