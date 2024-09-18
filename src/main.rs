@@ -18,6 +18,11 @@ const MAX_TITLE_LENGTH: usize = 100;
 const MAX_DESCRIPTION_LENGTH: usize = 640;
 const MAX_AUTHOR_NAME_LENGTH: usize = 256;
 
+const BANNED_ACCENTS: [catppuccin::ColorName; 2] = [
+    catppuccin::ColorName::Rosewater, // NO DOGWATER
+    catppuccin::ColorName::Flamingo,  // NO FRICKIN BIRDS
+];
+
 #[derive(serde::Deserialize)]
 struct Config {
     github_webhook_secret: String,
@@ -313,7 +318,7 @@ fn limit_text_length(text: &str, max_length: usize) -> String {
 fn make_discord_message(event_type: &str, e: &Event) -> anyhow::Result<Option<serde_json::Value>> {
     let mut embed = EmbedBuilder::default();
 
-    embed.color(pick_color(event_type));
+    embed.color(pick_color(event_type, &e.action));
     embed.author(e.sender.clone());
 
     let display_action = e.action.replace('_', " ");
@@ -469,16 +474,17 @@ fn make_discord_message(event_type: &str, e: &Event) -> anyhow::Result<Option<se
     Ok(Some(embed.try_build()?))
 }
 
-fn pick_color(event_type: &str) -> catppuccin::Color {
+fn pick_color(event_type: &str, action: &str) -> catppuccin::Color {
     let options = catppuccin::PALETTE
         .mocha
         .colors
         .iter()
-        .filter(|c| c.accent)
+        .filter(|c| c.accent && !BANNED_ACCENTS.contains(&c.name))
         .collect::<Vec<_>>();
 
     let mut hasher = DefaultHasher::new();
     event_type.hash(&mut hasher);
+    action.hash(&mut hasher);
     let hash = hasher.finish();
 
     #[allow(clippy::cast_possible_truncation)]
