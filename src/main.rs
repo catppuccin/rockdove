@@ -129,7 +129,15 @@ struct Issue {
     number: u64,
     html_url: String,
     body: Option<String>,
+    pull_request: Option<IssueCommentPullRequest>,
 }
+
+/// "This event occurs when there is activity relating to a comment on an issue
+/// or pull request."
+///
+/// <https://docs.github.com/en/webhooks/webhook-events-and-payloads#issue_comment>
+#[derive(serde::Deserialize)]
+struct IssueCommentPullRequest {}
 
 #[derive(serde::Deserialize)]
 struct PullRequest {
@@ -294,10 +302,17 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
         if e.action != "created" {
             return Ok(None);
         }
+
         if let Some(issue) = &e.issue {
+            let action = if issue.pull_request.is_some() {
+                "pull request"
+            } else {
+                "issue"
+            };
+
             embed.title(&format!(
-                "[{}] New comment on issue #{}: {}",
-                e.repository.full_name, issue.number, issue.title
+                "[{}] New comment on {} #{}: {}",
+                e.repository.full_name, action, issue.number, issue.title
             ));
             #[allow(clippy::unreadable_literal)]
             embed.color(0xe68d60);
@@ -450,25 +465,6 @@ mod tests {
     use crate::{make_discord_message, Event};
 
     #[test]
-    fn test_comment_created() {
-        let payload = include_str!("../fixtures/comment_created.json");
-        let e: Event = serde_json::from_str(payload).unwrap();
-        let msg = make_discord_message(&e).unwrap().unwrap();
-        assert_eq!(
-            msg["embeds"][0]["title"].as_str().unwrap(),
-            "[catppuccin/java] New comment on issue #20: Reconsider OSSRH Authentication"
-        );
-    }
-
-    #[test]
-    fn test_comment_deleted() {
-        let payload = include_str!("../fixtures/comment_deleted.json");
-        let e: Event = serde_json::from_str(payload).unwrap();
-        let msg = make_discord_message(&e).unwrap();
-        assert!(msg.is_none());
-    }
-
-    #[test]
     fn test_bot_pull_request_opened() {
         let payload = include_str!("../fixtures/bot_pull_request_opened.json");
         let e: Event = serde_json::from_str(payload).unwrap();
@@ -521,6 +517,41 @@ mod tests {
         let e: Event = serde_json::from_str(payload).unwrap();
         let msg = make_discord_message(&e).unwrap();
         assert!(msg.is_none());
+    }
+
+    mod issue_comment {
+        use crate::{make_discord_message, Event};
+
+        #[test]
+        fn created() {
+            let payload = include_str!("../fixtures/issue_comment/created.json");
+            let e: Event = serde_json::from_str(payload).unwrap();
+            let msg = make_discord_message(&e).unwrap().unwrap();
+            assert_eq!(
+                msg["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin/java] New comment on issue #20: Reconsider OSSRH Authentication"
+            );
+        }
+
+        // Unsure why but it seems like the pull request comments are also being sent as issue comments?
+        #[test]
+        fn created_on_pull_request() {
+            let payload = include_str!("../fixtures/issue_comment/created_on_pull_request.json");
+            let e: Event = serde_json::from_str(payload).unwrap();
+            let msg = make_discord_message(&e).unwrap().unwrap();
+            assert_eq!(
+                msg["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin/userstyles] New comment on pull request #1323: feat(fontawesome): init"
+            );
+        }
+
+        #[test]
+        fn deleted() {
+            let payload = include_str!("../fixtures/issue_comment/deleted.json");
+            let e: Event = serde_json::from_str(payload).unwrap();
+            let msg = make_discord_message(&e).unwrap();
+            assert!(msg.is_none());
+        }
     }
 
     mod pull_request_review {
