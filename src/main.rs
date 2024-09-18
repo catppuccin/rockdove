@@ -14,6 +14,10 @@ const MAX_TITLE_LENGTH: usize = 100;
 const MAX_DESCRIPTION_LENGTH: usize = 640;
 const MAX_AUTHOR_NAME_LENGTH: usize = 256;
 
+const CATPPUCCIN_GREEN: catppuccin::Rgb = catppuccin::PALETTE.mocha.colors.green.rgb;
+const CATPPUCCIN_PEACH: catppuccin::Rgb = catppuccin::PALETTE.mocha.colors.peach.rgb;
+const CATPPUCCIN_LAVENDER: catppuccin::Rgb = catppuccin::PALETTE.mocha.colors.lavender.rgb;
+
 #[derive(serde::Deserialize)]
 struct Config {
     github_webhook_secret: String,
@@ -261,8 +265,8 @@ impl EmbedBuilder {
         self
     }
 
-    fn color(&mut self, color: u32) -> &Self {
-        self.color = Some(color);
+    fn color(&mut self, color: catppuccin::Rgb) -> &Self {
+        self.color = Some(u32::from(color.r) << 16 | u32::from(color.g) << 8 | u32::from(color.b));
         self
     }
 
@@ -300,11 +304,10 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
     let mut embed = EmbedBuilder::default();
 
     if e.action == "opened" {
-        #[allow(clippy::unreadable_literal)]
         if e.issue.is_some() {
-            embed.color(0xeb6420);
+            embed.color(CATPPUCCIN_GREEN);
         } else if e.pull_request.is_some() {
-            embed.color(0x009800);
+            embed.color(CATPPUCCIN_PEACH);
         }
     }
 
@@ -329,8 +332,7 @@ fn make_discord_message(e: &Event) -> anyhow::Result<Option<serde_json::Value>> 
                     "[{}] New comment on {} #{}: {}",
                     repository.full_name, action, issue.number, issue.title
                 ));
-                #[allow(clippy::unreadable_literal)]
-                embed.color(0xe68d60);
+                embed.color(CATPPUCCIN_LAVENDER);
                 embed.url(&comment.html_url);
                 embed.description(&comment.body);
             } else {
