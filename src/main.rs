@@ -108,14 +108,16 @@ enum HookTarget {
 async fn webhook(
     State(app_state): State<AppState>,
     headers: HeaderMap,
-    GithubEvent(payload): GithubEvent<String>,
+    GithubEvent(payload): GithubEvent<serde_json::Value>,
 ) {
     let Some(Ok(event_type)) = headers.get("X-GitHub-Event").map(|v| v.to_str()) else {
         error!("missing or invalid X-GitHub-Event header");
         return;
     };
 
-    let event = match WebhookEvent::try_from_header_and_body(event_type, &payload) {
+    info!(?event_type, "received event");
+
+    let event = match WebhookEvent::try_from_header_and_body(event_type, &payload.to_string()) {
         Ok(event) => event,
         Err(e) => {
             error!(%e, "failed to parse event");
@@ -125,14 +127,11 @@ async fn webhook(
 
     let hook = match hook_target(&event) {
         HookTarget::Normal => {
-            info!(
-                hook = &app_state.discord_hooks.normal,
-                "sending normal hook"
-            );
+            info!("hook target is normal");
             &app_state.discord_hooks.normal
         }
         HookTarget::Bot => {
-            info!(hook = &app_state.discord_hooks.bot, "sending bot hook");
+            info!("hook target is bot");
             &app_state.discord_hooks.bot
         }
         HookTarget::None => {
@@ -187,11 +186,11 @@ fn make_repository_embed(
 
     let mut embed = EmbedBuilder::default();
 
-    let name = repo.full_name.unwrap_or(repo.name);
+    let full_name = repo.full_name.as_ref().unwrap_or(&repo.name);
 
     embed.title(&format!(
         "[{}] Repository {}",
-        name,
+        full_name,
         match specifics.action {
             RepositoryWebhookEventAction::Archived => "archived".to_string(),
             RepositoryWebhookEventAction::Created => "created".to_string(),
@@ -199,15 +198,18 @@ fn make_repository_embed(
             RepositoryWebhookEventAction::Renamed => {
                 format!(
                     "renamed from {} to {}",
-                    name,
                     specifics
                         .changes
                         .as_ref()
                         .expect("repository renamed event should always have changes")
+                        .repository
+                        .as_ref()
+                        .expect("repository renamed event changes should always have a repository")
                         .name
                         .as_ref()
                         .expect("repository renamed event changes should always have a name")
-                        .from
+                        .from,
+                    repo.name,
                 )
             }
             RepositoryWebhookEventAction::Transferred => {
@@ -221,10 +223,10 @@ fn make_repository_embed(
                         .as_ref()
                         .expect("repository transferred event changes should always have an owner")
                         .from
+                        .user
                         .login,
-                    event
-                        .sender
-                        .expect("repository transferred event should always have a sender")
+                    repo.owner
+                        .expect("repository should always have an owner")
                         .login
                 )
             }
@@ -300,7 +302,8 @@ fn make_issue_embed(
     }
 
     embed.color(match specifics.action {
-        IssuesWebhookEventAction::Closed | IssuesWebhookEventAction::Locked => COLORS.red,
+        IssuesWebhookEventAction::Closed => COLORS.peach,
+        IssuesWebhookEventAction::Locked => COLORS.red,
         _ => ISSUE_COLOR,
     });
 
@@ -376,7 +379,8 @@ fn make_pull_request_embed(
     }
 
     embed.color(match specifics.action {
-        PullRequestWebhookEventAction::Closed | PullRequestWebhookEventAction::Locked => COLORS.red,
+        PullRequestWebhookEventAction::Closed => COLORS.peach,
+        PullRequestWebhookEventAction::Locked => COLORS.red,
         PullRequestWebhookEventAction::Opened | PullRequestWebhookEventAction::ReadyForReview => {
             COLORS.green
         }
@@ -418,7 +422,11 @@ fn make_issue_comment_embed(
         embed.description(body);
     }
 
-    embed.color(ISSUE_COLOR);
+    embed.color(if specifics.issue.pull_request.is_some() {
+        PULL_REQUEST_COLOR
+    } else {
+        ISSUE_COLOR
+    });
 
     Some(embed)
 }
@@ -663,6 +671,34 @@ mod tests {
             .expect("event fixture is valid");
         let embed = make_embed(event).expect("make_embed should succeed");
         assert!(embed.is_none());
+    }
+
+    #[test]
+    fn test_repository_transferred() {
+        let payload = include_str!("../fixtures/repository_transferred.json");
+        let event = WebhookEvent::try_from_header_and_body("repository", payload)
+            .expect("event fixture is valid");
+        let embed = make_embed(event)
+            .expect("make_embed should succeed")
+            .expect("event fixture can be turned into an embed");
+        assert_eq!(
+            embed["embeds"][0]["title"].as_str().unwrap(),
+            "[catppuccin-rfc/polybar] Repository transferred from backwardspy to catppuccin-rfc"
+        );
+    }
+
+    #[test]
+    fn test_repository_renamed() {
+        let payload = include_str!("../fixtures/repository_renamed.json");
+        let event = WebhookEvent::try_from_header_and_body("repository", payload)
+            .expect("event fixture is valid");
+        let embed = make_embed(event)
+            .expect("make_embed should succeed")
+            .expect("event fixture can be turned into an embed");
+        assert_eq!(
+            embed["embeds"][0]["title"].as_str().unwrap(),
+            "[catppuccin-rfc/polybar-2] Repository renamed from polybar to polybar-2"
+        );
     }
 
     mod issue_comment {
