@@ -1,7 +1,4 @@
-use std::{
-    hash::{DefaultHasher, Hash as _, Hasher as _},
-    sync::Arc,
-};
+use std::sync::Arc;
 
 use axum::{
     extract::{FromRef, State},
@@ -10,18 +7,31 @@ use axum::{
     Router,
 };
 use axum_github_webhook_extract::{GithubEvent, GithubToken};
-use serde_json::json;
+use octocrab::models::{
+    pulls::ReviewState,
+    webhook_events::{
+        payload::{
+            IssueCommentWebhookEventAction, IssueCommentWebhookEventPayload,
+            IssuesWebhookEventAction, IssuesWebhookEventPayload, MembershipWebhookEventAction,
+            MembershipWebhookEventPayload, PullRequestReviewWebhookEventAction,
+            PullRequestReviewWebhookEventPayload, PullRequestWebhookEventAction,
+            PullRequestWebhookEventPayload, ReleaseWebhookEventAction, ReleaseWebhookEventPayload,
+            RepositoryWebhookEventAction, RepositoryWebhookEventPayload,
+        },
+        WebhookEvent, WebhookEventPayload,
+    },
+};
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
-use tracing::{error, info, Level};
+use tracing::{error, info, warn, Level};
 
-const MAX_TITLE_LENGTH: usize = 100;
-const MAX_DESCRIPTION_LENGTH: usize = 640;
-const MAX_AUTHOR_NAME_LENGTH: usize = 256;
+mod embed_builder;
+use embed_builder::EmbedBuilder;
 
-const BANNED_ACCENTS: [catppuccin::ColorName; 2] = [
-    catppuccin::ColorName::Rosewater, // NO DOGWATER
-    catppuccin::ColorName::Flamingo,  // NO FRICKIN BIRDS
-];
+const COLORS: catppuccin::FlavorColors = catppuccin::PALETTE.mocha.colors;
+const ISSUE_COLOR: catppuccin::Color = COLORS.green;
+const PULL_REQUEST_COLOR: catppuccin::Color = COLORS.blue;
+const REPO_COLOR: catppuccin::Color = COLORS.yellow;
+const RELEASE_COLOR: catppuccin::Color = COLORS.mauve;
 
 #[derive(serde::Deserialize)]
 struct Config {
@@ -95,402 +105,459 @@ enum HookTarget {
     None,
 }
 
-// https://docs.github.com/en/webhooks/webhook-events-and-payloads
-#[derive(serde::Deserialize)]
-struct Event {
-    action: String,
-    sender: User,
-    member: Option<User>,
-    repository: Option<Repository>,
-    issue: Option<Issue>,
-    comment: Option<Comment>,
-    pull_request: Option<PullRequest>,
-    review: Option<PullRequestReview>,
-    team: Option<Team>,
-    organization: Option<Organization>,
-    release: Option<Release>,
-    changes: Option<Changes>,
-}
-
-#[derive(serde::Deserialize)]
-struct Repository {
-    full_name: String,
-    name: String,
-    html_url: String,
-    private: bool,
-}
-
-#[derive(Clone, Debug, serde::Deserialize)]
-struct User {
-    login: String,
-    avatar_url: String,
-    html_url: String,
-    #[serde(rename = "type")]
-    sender_type: String,
-}
-
-#[derive(Clone, serde::Deserialize)]
-struct Comment {
-    body: String,
-    html_url: String,
-}
-
-#[derive(serde::Deserialize)]
-struct Issue {
-    title: String,
-    number: u64,
-    html_url: String,
-    body: Option<String>,
-    pull_request: Option<IssueCommentPullRequest>,
-}
-
-/// "This event occurs when there is activity relating to a comment on an issue
-/// or pull request."
-///
-/// <https://docs.github.com/en/webhooks/webhook-events-and-payloads#issue_comment>
-#[derive(serde::Deserialize)]
-struct IssueCommentPullRequest {}
-
-#[derive(serde::Deserialize)]
-struct PullRequest {
-    title: String,
-    number: u64,
-    html_url: String,
-    body: Option<String>,
-    merged_at: Option<String>,
-}
-
-#[derive(serde::Deserialize)]
-struct PullRequestReview {
-    html_url: String,
-    body: Option<String>,
-    state: String,
-}
-
-#[derive(serde::Deserialize)]
-struct Release {
-    html_url: String,
-    name: String,
-}
-
-#[derive(serde::Deserialize)]
-struct Team {
-    name: String,
-    html_url: String,
-}
-
-#[derive(serde::Deserialize)]
-struct Organization {
-    login: String,
-}
-
-#[derive(serde::Deserialize)]
-struct Changes {
-    owner: Option<ChangesOwner>,
-    repository: Option<ChangesRepository>,
-}
-
-#[derive(serde::Deserialize)]
-struct ChangesOwner {
-    from: ChangesOwnerFrom,
-}
-
-#[derive(serde::Deserialize)]
-struct ChangesOwnerFrom {
-    user: User,
-}
-
-#[derive(serde::Deserialize)]
-struct ChangesRepository {
-    name: ChangesRepositoryName,
-}
-
-#[derive(serde::Deserialize)]
-struct ChangesRepositoryName {
-    from: String,
-}
-
 async fn webhook(
     State(app_state): State<AppState>,
     headers: HeaderMap,
-    GithubEvent(e): GithubEvent<Event>,
+    GithubEvent(payload): GithubEvent<String>,
 ) {
-    if e.action == "edited" {
-        info!("ignoring edited event");
-        return;
-    }
-
     let Some(Ok(event_type)) = headers.get("X-GitHub-Event").map(|v| v.to_str()) else {
         error!("missing or invalid X-GitHub-Event header");
         return;
     };
 
-    match hook_target(&e) {
+    let event = match WebhookEvent::try_from_header_and_body(event_type, &payload) {
+        Ok(event) => event,
+        Err(e) => {
+            error!(%e, "failed to parse event");
+            return;
+        }
+    };
+
+    let hook = match hook_target(&event) {
         HookTarget::Normal => {
             info!(
                 hook = &app_state.discord_hooks.normal,
                 "sending normal hook"
             );
-            match make_discord_message(event_type, &e) {
-                Ok(Some(msg)) => send_hook(&msg, &app_state.discord_hooks.normal).await,
-                Ok(None) => info!("no embed created - ignoring event"),
-                Err(e) => error!(%e, "failed to make discord message"),
-            }
+            &app_state.discord_hooks.normal
         }
         HookTarget::Bot => {
             info!(hook = &app_state.discord_hooks.bot, "sending bot hook");
-            match make_discord_message(event_type, &e) {
-                Ok(Some(msg)) => send_hook(&msg, &app_state.discord_hooks.bot).await,
-                Ok(None) => info!("no embed created - ignoring event"),
-                Err(e) => error!(%e, "failed to make discord message"),
-            }
+            &app_state.discord_hooks.bot
         }
-        HookTarget::None => info!("no target - ignoring event"),
-    }
-}
+        HookTarget::None => {
+            info!("no target - ignoring event");
+            return;
+        }
+    };
 
-#[derive(Default, Debug)]
-struct EmbedBuilder {
-    title: Option<String>,
-    url: Option<String>,
-    author: Option<User>,
-    description: Option<String>,
-    color: Option<u32>,
-}
-
-impl EmbedBuilder {
-    fn title(&mut self, title: &str) -> &Self {
-        self.title = Some(limit_text_length(title, MAX_TITLE_LENGTH));
-        self
-    }
-
-    fn url(&mut self, url: &str) -> &Self {
-        self.url = Some(url.to_string());
-        self
-    }
-
-    fn author(&mut self, author: User) -> &Self {
-        self.author = Some(author);
-        self
-    }
-
-    fn description(&mut self, description: &str) -> &Self {
-        self.description = Some(limit_text_length(description, MAX_DESCRIPTION_LENGTH));
-        self
-    }
-
-    fn color(&mut self, color: catppuccin::Color) -> &Self {
-        let rgb = color.rgb;
-        self.color = Some(u32::from(rgb.r) << 16 | u32::from(rgb.g) << 8 | u32::from(rgb.b));
-        self
-    }
-
-    fn try_build(self) -> anyhow::Result<serde_json::Value> {
-        Ok(json!({
-            "embeds": [{
-                "title": self.title.ok_or_else(|| anyhow::anyhow!("missing title"))?,
-                "url": self.url.ok_or_else(|| anyhow::anyhow!("missing url"))?,
-                "description": self.description,
-                "color": self.color,
-                "author": embed_author(&self.author.ok_or_else(|| anyhow::anyhow!("missing author"))?),
-            }],
-        }))
-    }
-}
-
-fn embed_author(user: &User) -> serde_json::Value {
-    json!({
-        "name": limit_text_length(&user.login, MAX_AUTHOR_NAME_LENGTH),
-        "url": user.html_url,
-        "icon_url": user.avatar_url,
-    })
-}
-
-fn limit_text_length(text: &str, max_length: usize) -> String {
-    if text.len() > max_length {
-        format!("{}...", &text[..max_length - 3])
-    } else {
-        text.to_string()
+    match make_embed(event) {
+        Ok(Some(msg)) => send_hook(&msg, hook).await,
+        Ok(None) => info!("no embed created - ignoring event"),
+        Err(e) => error!(%e, "failed to make discord message"),
     }
 }
 
 #[allow(clippy::too_many_lines)]
-fn make_discord_message(event_type: &str, e: &Event) -> anyhow::Result<Option<serde_json::Value>> {
-    let mut embed = EmbedBuilder::default();
+fn make_embed(event: WebhookEvent) -> anyhow::Result<Option<serde_json::Value>> {
+    let sender = event
+        .sender
+        .clone()
+        .expect("event should always have a sender");
 
-    embed.color(pick_color(event_type, &e.action));
-    embed.author(e.sender.clone());
-
-    let display_action = e.action.replace('_', " ");
-
-    if let Some(repository) = &e.repository {
-        if let Some(comment) = &e.comment {
-            if e.action != "created" {
-                return Ok(None);
-            }
-
-            if let Some(issue) = &e.issue {
-                let action = if issue.pull_request.is_some() {
-                    "pull request"
-                } else {
-                    "issue"
-                };
-
-                embed.title(&format!(
-                    "[{}] New comment on {} #{}: {}",
-                    repository.full_name, action, issue.number, issue.title
-                ));
-                embed.url(&comment.html_url);
-                embed.description(&comment.body);
-            } else {
-                return Ok(None);
-            }
-        } else if let Some(issue) = &e.issue {
-            if e.action != "opened"
-                && e.action != "closed"
-                && e.action != "reopened"
-                && e.action != "transferred"
-            {
-                return Ok(None);
-            }
-
-            embed.title(&format!(
-                "[{}] Issue {}: #{} {}",
-                repository.full_name, display_action, issue.number, issue.title
-            ));
-
-            if e.action == "opened" {
-                if let Some(body) = &issue.body {
-                    embed.description(body);
-                }
-            }
-
-            embed.url(&issue.html_url);
-        } else if let Some(pull_request) = &e.pull_request {
-            if let Some(pull_request_review) = &e.review {
-                if e.action != "submitted" {
-                    return Ok(None);
-                }
-
-                let action = match pull_request_review.state.as_str() {
-                    "approved" => "approved",
-                    "changes_requested" => "changes requested",
-                    "commented" => "reviewed",
-                    _ => pull_request_review.state.as_str(),
-                };
-
-                embed.title(&format!(
-                    "[{}] Pull request {}: #{} {}",
-                    repository.full_name, action, pull_request.number, pull_request.title
-                ));
-
-                if let Some(body) = &pull_request_review.body {
-                    embed.description(body);
-                }
-
-                embed.url(&pull_request_review.html_url);
-            } else {
-                if e.action != "opened" && e.action != "closed" && e.action != "reopened" {
-                    return Ok(None);
-                }
-
-                let action = if e.action == "closed" && pull_request.merged_at.is_some() {
-                    "merged"
-                } else {
-                    &display_action
-                };
-
-                embed.title(&format!(
-                    "[{}] Pull request {}: #{} {}",
-                    repository.full_name, action, pull_request.number, pull_request.title
-                ));
-
-                if e.action == "opened" {
-                    if let Some(body) = &pull_request.body {
-                        embed.description(body);
-                    }
-                }
-
-                embed.url(&pull_request.html_url);
-            }
-        } else if let Some(release) = &e.release {
-            if e.action != "released" {
-                return Ok(None);
-            }
-
-            embed.title(&format!(
-                "[{}] New release published: {}",
-                repository.full_name, release.name
-            ));
-            embed.url(&release.html_url);
-        } else if let Some(changes) = &e.changes {
-            if let Some(ChangesOwner {
-                from: ChangesOwnerFrom { user },
-            }) = &changes.owner
-            {
-                embed.title(&format!(
-                    "[{}] Repository transferred from {}/{}",
-                    repository.full_name, user.login, repository.name
-                ));
-                embed.url(&repository.html_url);
-            } else if let Some(ChangesRepository {
-                name: ChangesRepositoryName { from },
-            }) = &changes.repository
-            {
-                embed.title(&format!(
-                    "[{}] Repository renamed from {}",
-                    repository.full_name, from
-                ));
-                embed.url(&repository.html_url);
-            } else {
-                return Ok(None);
-            }
-        } else if matches!(e.action.as_str(), "archived" | "unarchived") {
-            embed.title(&format!(
-                "[{}] Repository {}",
-                repository.full_name, e.action
-            ));
-            embed.url(&repository.html_url);
-        } else {
+    let Some(mut embed) = (match event.specific.clone() {
+        WebhookEventPayload::Repository(specifics) => make_repository_embed(event, &specifics),
+        WebhookEventPayload::Issues(specifics) => make_issue_embed(event, &specifics),
+        WebhookEventPayload::PullRequest(specifics) => make_pull_request_embed(event, &specifics),
+        WebhookEventPayload::IssueComment(specifics) => make_issue_comment_embed(event, &specifics),
+        WebhookEventPayload::PullRequestReview(specifics) => {
+            make_pull_request_review_embed(event, &specifics)
+        }
+        WebhookEventPayload::Release(specifics) => make_release_embed(event, &specifics),
+        WebhookEventPayload::Membership(specifics) => make_membership_embed(event, &specifics),
+        _ => {
+            info!(?event.kind, "ignoring event");
             return Ok(None);
         }
-    } else if let Some(team) = &e.team {
-        let org = e
-            .organization
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("missing organization"))?;
-        let member = e
-            .member
-            .as_ref()
-            .ok_or_else(|| anyhow::anyhow!("missing member"))?;
+    }) else {
+        return Ok(None);
+    };
 
-        embed.title(&format!(
-            "[{}/{}] Member {} {}",
-            org.login, team.name, member.login, e.action
-        ));
-        embed.url(&team.html_url);
-    }
-
+    embed.author(sender);
     Ok(Some(embed.try_build()?))
 }
 
-fn pick_color(event_type: &str, action: &str) -> catppuccin::Color {
-    let options = catppuccin::PALETTE
-        .mocha
-        .colors
-        .iter()
-        .filter(|c| c.accent && !BANNED_ACCENTS.contains(&c.name))
-        .collect::<Vec<_>>();
+fn make_repository_embed(
+    event: WebhookEvent,
+    specifics: &RepositoryWebhookEventPayload,
+) -> Option<EmbedBuilder> {
+    let repo = event
+        .repository
+        .expect("repository events should always have a repository");
 
-    let mut hasher = DefaultHasher::new();
-    event_type.hash(&mut hasher);
-    action.hash(&mut hasher);
-    let hash = hasher.finish();
+    let mut embed = EmbedBuilder::default();
 
-    #[allow(clippy::cast_possible_truncation)]
-    let choice = hash as usize % options.len();
+    let name = repo.full_name.unwrap_or(repo.name);
 
-    *options[choice]
+    embed.title(&format!(
+        "[{}] Repository {}",
+        name,
+        match specifics.action {
+            RepositoryWebhookEventAction::Archived => "archived".to_string(),
+            RepositoryWebhookEventAction::Created => "created".to_string(),
+            RepositoryWebhookEventAction::Deleted => "deleted".to_string(),
+            RepositoryWebhookEventAction::Renamed => {
+                format!(
+                    "renamed from {} to {}",
+                    name,
+                    specifics
+                        .changes
+                        .as_ref()
+                        .expect("repository renamed event should always have changes")
+                        .name
+                        .as_ref()
+                        .expect("repository renamed event changes should always have a name")
+                        .from
+                )
+            }
+            RepositoryWebhookEventAction::Transferred => {
+                format!(
+                    "transferred from {} to {}",
+                    specifics
+                        .changes
+                        .as_ref()
+                        .expect("repository transferred event should always have changes")
+                        .owner
+                        .as_ref()
+                        .expect("repository transferred event changes should always have an owner")
+                        .from
+                        .login,
+                    event
+                        .sender
+                        .expect("repository transferred event should always have a sender")
+                        .login
+                )
+            }
+            RepositoryWebhookEventAction::Unarchived => "unarchived".to_string(),
+            _ => {
+                return None;
+            }
+        }
+    ));
+
+    embed.url(
+        repo.html_url
+            .expect("repository should always have an html url")
+            .as_str(),
+    );
+
+    embed.color(match specifics.action {
+        RepositoryWebhookEventAction::Deleted => COLORS.red,
+        RepositoryWebhookEventAction::Transferred => COLORS.pink,
+        _ => REPO_COLOR,
+    });
+
+    Some(embed)
+}
+
+fn make_issue_embed(
+    event: WebhookEvent,
+    specifics: &IssuesWebhookEventPayload,
+) -> Option<EmbedBuilder> {
+    let repo = event
+        .repository
+        .expect("issue events should always have a repository");
+
+    let mut embed = EmbedBuilder::default();
+
+    let repo_name = repo.full_name.unwrap_or(repo.name);
+
+    embed.title(&format!(
+        "[{}] Issue {}: #{} {}",
+        repo_name,
+        match specifics.action {
+            IssuesWebhookEventAction::Assigned => {
+                let assignee = specifics
+                    .issue
+                    .assignee
+                    .as_ref()
+                    .expect("issue assigned events should always have an assignee");
+                format!("assigned to {}", assignee.login)
+            }
+            IssuesWebhookEventAction::Closed => "closed".to_string(),
+            IssuesWebhookEventAction::Locked => "locked".to_string(),
+            IssuesWebhookEventAction::Opened => "opened".to_string(),
+            IssuesWebhookEventAction::Pinned => "pinned".to_string(),
+            IssuesWebhookEventAction::Reopened => "reopened".to_string(),
+            // TODO: this would be nice
+            // IssuesWebhookEventAction::Transferred => {
+            //     todo!()
+            // }
+            _ => {
+                return None;
+            }
+        },
+        specifics.issue.number,
+        specifics.issue.title,
+    ));
+
+    embed.url(specifics.issue.html_url.as_str());
+
+    if matches!(specifics.action, IssuesWebhookEventAction::Opened) {
+        if let Some(ref body) = specifics.issue.body {
+            embed.description(body);
+        }
+    }
+
+    embed.color(match specifics.action {
+        IssuesWebhookEventAction::Closed | IssuesWebhookEventAction::Locked => COLORS.red,
+        _ => ISSUE_COLOR,
+    });
+
+    Some(embed)
+}
+
+fn make_pull_request_embed(
+    event: WebhookEvent,
+    specifics: &PullRequestWebhookEventPayload,
+) -> Option<EmbedBuilder> {
+    let repo = event
+        .repository
+        .expect("pull request events should always have a repository");
+
+    let mut embed = EmbedBuilder::default();
+
+    let repo_name = repo.full_name.unwrap_or(repo.name);
+
+    embed.title(&format!(
+        "[{}] Pull request {}: #{} {}",
+        repo_name,
+        match specifics.action {
+            PullRequestWebhookEventAction::Assigned => {
+                let assignee = specifics
+                    .assignee
+                    .as_ref()
+                    .expect("pull request assigned events should always have an assignee");
+                format!("assigned to {}", assignee.login)
+            }
+            PullRequestWebhookEventAction::Closed => {
+                if specifics.pull_request.merged_at.is_some() {
+                    "merged".to_string()
+                } else {
+                    "closed".to_string()
+                }
+            }
+            PullRequestWebhookEventAction::Locked => "locked".to_string(),
+            PullRequestWebhookEventAction::Opened => "opened".to_string(),
+            PullRequestWebhookEventAction::ReadyForReview => "ready for review".to_string(),
+            PullRequestWebhookEventAction::Reopened => "reopened".to_string(),
+            PullRequestWebhookEventAction::ReviewRequested => {
+                let reviewer = specifics
+                    .requested_reviewer
+                    .as_ref()
+                    .expect("pull request review requested events should always have a reviewer");
+                format!("review requested from {}", reviewer.login)
+            }
+            _ => {
+                return None;
+            }
+        },
+        specifics.number,
+        specifics
+            .pull_request
+            .title
+            .as_ref()
+            .expect("pull request should always have a title")
+    ));
+
+    embed.url(
+        specifics
+            .pull_request
+            .html_url
+            .as_ref()
+            .expect("pull request should always have an html url")
+            .as_str(),
+    );
+
+    if matches!(specifics.action, PullRequestWebhookEventAction::Opened) {
+        if let Some(ref body) = specifics.pull_request.body {
+            embed.description(body);
+        }
+    }
+
+    embed.color(match specifics.action {
+        PullRequestWebhookEventAction::Closed | PullRequestWebhookEventAction::Locked => COLORS.red,
+        PullRequestWebhookEventAction::Opened | PullRequestWebhookEventAction::ReadyForReview => {
+            COLORS.green
+        }
+        _ => PULL_REQUEST_COLOR,
+    });
+
+    Some(embed)
+}
+
+fn make_issue_comment_embed(
+    event: WebhookEvent,
+    specifics: &IssueCommentWebhookEventPayload,
+) -> Option<EmbedBuilder> {
+    if !matches!(specifics.action, IssueCommentWebhookEventAction::Created) {
+        return None;
+    }
+
+    let repo = event
+        .repository
+        .expect("issue comment events should always have a repository");
+
+    let mut embed = EmbedBuilder::default();
+
+    let repo_name = repo.full_name.unwrap_or(repo.name);
+    let target = if specifics.issue.pull_request.is_some() {
+        "pull request"
+    } else {
+        "issue"
+    };
+
+    embed.title(&format!(
+        "[{}] New comment on {} #{}: {}",
+        repo_name, target, specifics.issue.number, specifics.issue.title,
+    ));
+
+    embed.url(specifics.comment.html_url.as_str());
+
+    if let Some(ref body) = specifics.comment.body {
+        embed.description(body);
+    }
+
+    embed.color(ISSUE_COLOR);
+
+    Some(embed)
+}
+
+fn make_pull_request_review_embed(
+    event: WebhookEvent,
+    specifics: &PullRequestReviewWebhookEventPayload,
+) -> Option<EmbedBuilder> {
+    if !matches!(
+        specifics.action,
+        PullRequestReviewWebhookEventAction::Submitted
+    ) {
+        return None;
+    }
+
+    let repo = event
+        .repository
+        .expect("pull request review events should always have a repository");
+
+    let mut embed = EmbedBuilder::default();
+
+    let repo_name = repo.full_name.unwrap_or(repo.name);
+
+    embed.title(&format!(
+        "[{}] Pull request {}: #{} {}",
+        repo_name,
+        match specifics
+            .review
+            .state
+            .expect("pull request review should always have a state")
+        {
+            ReviewState::Approved => "approved",
+            ReviewState::ChangesRequested => "changes requested",
+            ReviewState::Commented => "reviewed",
+            _ => return None,
+        },
+        specifics.pull_request.number,
+        specifics
+            .pull_request
+            .title
+            .as_ref()
+            .expect("pull request should always have a title"),
+    ));
+
+    embed.url(specifics.review.html_url.as_str());
+
+    if let Some(ref body) = specifics.review.body {
+        embed.description(body);
+    }
+
+    embed.color(REPO_COLOR);
+
+    Some(embed)
+}
+
+fn make_release_embed(
+    event: WebhookEvent,
+    specifics: &ReleaseWebhookEventPayload,
+) -> Option<EmbedBuilder> {
+    if !matches!(specifics.action, ReleaseWebhookEventAction::Released) {
+        return None;
+    }
+
+    let repo = event
+        .repository
+        .expect("release events should always have a repository");
+
+    let mut embed = EmbedBuilder::default();
+
+    let repo_name = repo.full_name.unwrap_or(repo.name);
+
+    embed.title(&format!(
+        "[{}] New release published: {}",
+        repo_name,
+        specifics
+            .release
+            .get("name")
+            .and_then(|v| v.as_str())
+            .unwrap_or("*no name*"),
+    ));
+
+    embed.url(
+        specifics
+            .release
+            .get("html_url")
+            .and_then(|v| v.as_str())
+            .expect("release should always have an html url"),
+    );
+
+    if let Some(body) = specifics.release.get("body").and_then(|v| v.as_str()) {
+        embed.description(body);
+    }
+
+    embed.color(RELEASE_COLOR);
+
+    Some(embed)
+}
+
+fn make_membership_embed(
+    event: WebhookEvent,
+    specifics: &MembershipWebhookEventPayload,
+) -> Option<EmbedBuilder> {
+    let Some(team_name) = specifics.team.get("name").and_then(|v| v.as_str()) else {
+        warn!(?specifics.team, "missing team name");
+        return None;
+    };
+
+    let Some(member_login) = specifics.member.get("login").and_then(|v| v.as_str()) else {
+        warn!(?specifics.member, "missing member login");
+        return None;
+    };
+
+    let mut embed = EmbedBuilder::default();
+
+    embed.title(&format!(
+        "[{}] {} {} {} team",
+        event.organization?.login,
+        member_login,
+        match specifics.action {
+            MembershipWebhookEventAction::Added => "added to",
+            MembershipWebhookEventAction::Removed => "removed from",
+            _ => {
+                return None;
+            }
+        },
+        team_name
+    ));
+
+    embed.url(
+        specifics
+            .team
+            .get("html_url")
+            .and_then(|v| v.as_str())
+            .expect("team should always have an html url"),
+    );
+
+    embed.color(COLORS.base);
+
+    Some(embed)
 }
 
 async fn send_hook(e: &serde_json::Value, hook: &str) {
@@ -506,13 +573,15 @@ async fn send_hook(e: &serde_json::Value, hook: &str) {
     }
 }
 
-fn hook_target(e: &Event) -> HookTarget {
-    if e.sender.sender_type == "Bot" {
-        return HookTarget::Bot;
+fn hook_target(event: &WebhookEvent) -> HookTarget {
+    if let Some(sender) = &event.sender {
+        if sender.r#type == "Bot" {
+            return HookTarget::Bot;
+        }
     }
 
-    if let Some(repository) = &e.repository {
-        if repository.private {
+    if let Some(repository) = &event.repository {
+        if repository.private.unwrap_or(false) {
             info!("ignoring private repository event");
             return HookTarget::None;
         }
@@ -523,15 +592,20 @@ fn hook_target(e: &Event) -> HookTarget {
 
 #[cfg(test)]
 mod tests {
-    use crate::{make_discord_message, Event};
+    use octocrab::models::webhook_events::WebhookEvent;
+
+    use crate::make_embed;
 
     #[test]
     fn test_bot_pull_request_opened() {
         let payload = include_str!("../fixtures/bot_pull_request_opened.json");
-        let e: Event = serde_json::from_str(payload).unwrap();
-        let msg = make_discord_message("pull_request", &e).unwrap().unwrap();
+        let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
+            .expect("event fixture is valid");
+        let embed = make_embed(event)
+            .expect("make_embed should succeed")
+            .expect("event fixture can be turned into an embed");
         assert_eq!(
-            msg["embeds"][0]["title"].as_str().unwrap(),
+            embed["embeds"][0]["title"].as_str().unwrap(),
             "[catppuccin-rfc/cli-old] Pull request opened: #1 chore: Configure Renovate"
         );
     }
@@ -539,10 +613,13 @@ mod tests {
     #[test]
     fn test_limit_description_on_pull_request() {
         let payload = include_str!("../fixtures/bot_pull_request_opened.json");
-        let e: Event = serde_json::from_str(payload).unwrap();
-        let msg = make_discord_message("pull_request", &e).unwrap().unwrap();
+        let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
+            .expect("event fixture is valid");
+        let embed = make_embed(event)
+            .expect("make_embed should succeed")
+            .expect("event fixture can be turned into an embed");
         assert_eq!(
-            msg["embeds"][0]["description"]
+            embed["embeds"][0]["description"]
                 .as_str()
                 .unwrap()
                 .split_once('!')
@@ -550,24 +627,31 @@ mod tests {
                 .0,
             "Welcome to [Renovate](https://redirect.github.com/renovatebot/renovate)"
         );
-        assert_eq!(msg["embeds"][0]["description"].as_str().unwrap().len(), 640);
+        assert_eq!(
+            embed["embeds"][0]["description"].as_str().unwrap().len(),
+            640
+        );
     }
 
     #[test]
     fn test_ignore_pr_events() {
         let payload = include_str!("../fixtures/pull_request_synchronize.json");
-        let e: Event = serde_json::from_str(payload).unwrap();
-        let msg = make_discord_message("pull_request", &e).unwrap();
-        assert!(msg.is_none());
+        let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
+            .expect("event fixture is valid");
+        let embed = make_embed(event).expect("make_embed should succeed");
+        assert!(embed.is_none());
     }
 
     #[test]
     fn test_issue_opened() {
         let payload = include_str!("../fixtures/issue_opened.json");
-        let e: Event = serde_json::from_str(payload).unwrap();
-        let msg = make_discord_message("issues", &e).unwrap().unwrap();
+        let event = WebhookEvent::try_from_header_and_body("issues", payload)
+            .expect("event fixture is valid");
+        let embed = make_embed(event)
+            .expect("make_embed should succeed")
+            .expect("event fixture can be turned into an embed");
         assert_eq!(
-            msg["embeds"][0]["title"].as_str().unwrap(),
+            embed["embeds"][0]["title"].as_str().unwrap(),
             "[catppuccin/userstyles] Issue opened: #1318 LinkedIn: Profile picture edition icons and text is u..."
         );
     }
@@ -575,21 +659,27 @@ mod tests {
     #[test]
     fn test_ignore_issue_events() {
         let payload = include_str!("../fixtures/issue_unassigned.json");
-        let e: Event = serde_json::from_str(payload).unwrap();
-        let msg = make_discord_message("issues", &e).unwrap();
-        assert!(msg.is_none());
+        let event = WebhookEvent::try_from_header_and_body("issues", payload)
+            .expect("event fixture is valid");
+        let embed = make_embed(event).expect("make_embed should succeed");
+        assert!(embed.is_none());
     }
 
     mod issue_comment {
-        use crate::{make_discord_message, Event};
+        use octocrab::models::webhook_events::WebhookEvent;
+
+        use crate::make_embed;
 
         #[test]
         fn created() {
             let payload = include_str!("../fixtures/issue_comment/created.json");
-            let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message("issue_comment", &e).unwrap().unwrap();
+            let event = WebhookEvent::try_from_header_and_body("issue_comment", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
             assert_eq!(
-                msg["embeds"][0]["title"].as_str().unwrap(),
+                embed["embeds"][0]["title"].as_str().unwrap(),
                 "[catppuccin/java] New comment on issue #20: Reconsider OSSRH Authentication"
             );
         }
@@ -597,10 +687,13 @@ mod tests {
         #[test]
         fn created_on_pull_request() {
             let payload = include_str!("../fixtures/issue_comment/created_on_pull_request.json");
-            let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message("issue_comment", &e).unwrap().unwrap();
+            let event = WebhookEvent::try_from_header_and_body("issue_comment", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
             assert_eq!(
-                msg["embeds"][0]["title"].as_str().unwrap(),
+                embed["embeds"][0]["title"].as_str().unwrap(),
                 "[catppuccin/userstyles] New comment on pull request #1323: feat(fontawesome): init"
             );
         }
@@ -608,24 +701,26 @@ mod tests {
         #[test]
         fn deleted() {
             let payload = include_str!("../fixtures/issue_comment/deleted.json");
-            let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message("issue_comment", &e).unwrap();
-            assert!(msg.is_none());
+            let event = WebhookEvent::try_from_header_and_body("issue_comment", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event).expect("make_embed should succeed");
+            assert!(embed.is_none());
         }
     }
 
     mod pull_request_review {
-        use crate::{make_discord_message, Event};
+        use octocrab::models::webhook_events::WebhookEvent;
 
         #[test]
         fn approved() {
             let payload = include_str!("../fixtures/pull_request_review/approved.json");
-            let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message("pull_request_review", &e)
-                .unwrap()
-                .unwrap();
+            let event = WebhookEvent::try_from_header_and_body("pull_request_review", payload)
+                .expect("event fixture is valid");
+            let embed = crate::make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
             assert_eq!(
-                msg["embeds"][0]["title"].as_str().unwrap(),
+                embed["embeds"][0]["title"].as_str().unwrap(),
                 "[catppuccin-rfc/polybar] Pull request approved: #3 chore: Configure Renovate"
             );
         }
@@ -633,54 +728,65 @@ mod tests {
         #[test]
         fn changes_requested() {
             let payload = include_str!("../fixtures/pull_request_review/changes_requested.json");
-            let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message("pull_request_review", &e)
-                .unwrap()
-                .unwrap();
+            let event = WebhookEvent::try_from_header_and_body("pull_request_review", payload)
+                .expect("event fixture is valid");
+            let embed = crate::make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
             assert_eq!(
-            msg["embeds"][0]["title"].as_str().unwrap(),
+            embed["embeds"][0]["title"].as_str().unwrap(),
             "[catppuccin-rfc/polybar] Pull request changes requested: #3 chore: Configure Renovate"
         );
-            assert_eq!(msg["embeds"][0]["description"].as_str().unwrap(), "test");
+            assert_eq!(embed["embeds"][0]["description"].as_str().unwrap(), "test");
         }
 
         #[test]
         fn commented() {
             let payload = include_str!("../fixtures/pull_request_review/commented.json");
-            let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message("pull_request_review", &e)
-                .unwrap()
-                .unwrap();
+            let event = WebhookEvent::try_from_header_and_body("pull_request_review", payload)
+                .expect("event fixture is valid");
+            let embed = crate::make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
             assert_eq!(
-                msg["embeds"][0]["title"].as_str().unwrap(),
+                embed["embeds"][0]["title"].as_str().unwrap(),
                 "[catppuccin-rfc/polybar] Pull request reviewed: #3 chore: Configure Renovate"
             );
-            assert_eq!(msg["embeds"][0]["description"].as_str().unwrap(), "normal");
+            assert_eq!(
+                embed["embeds"][0]["description"].as_str().unwrap(),
+                "normal"
+            );
         }
     }
 
     mod membership {
-        use crate::{make_discord_message, Event};
+        use octocrab::models::webhook_events::WebhookEvent;
 
         #[test]
         fn added() {
             let payload = include_str!("../fixtures/membership/added.json");
-            let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message("membership", &e).unwrap().unwrap();
+            let event = WebhookEvent::try_from_header_and_body("membership", payload)
+                .expect("event fixture is valid");
+            let embed = crate::make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
             assert_eq!(
-                msg["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc/staff] Member backwardspy added"
+                embed["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc] backwardspy added to staff team"
             );
         }
 
         #[test]
         fn removed() {
             let payload = include_str!("../fixtures/membership/removed.json");
-            let e: Event = serde_json::from_str(payload).unwrap();
-            let msg = make_discord_message("membership", &e).unwrap().unwrap();
+            let event = WebhookEvent::try_from_header_and_body("membership", payload)
+                .expect("event fixture is valid");
+            let embed = crate::make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
             assert_eq!(
-                msg["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc/staff] Member backwardspy removed"
+                embed["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc] backwardspy removed from staff team"
             );
         }
     }
