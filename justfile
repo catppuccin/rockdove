@@ -31,3 +31,10 @@ repository_rename current_repo new_repo:
 # Transfer an existing repository to a new owner
 repository_transfer current_owner_plus_repo new_owner:
   gh api repos/{{current_owner_plus_repo}}/transfer -f new_owner={{new_owner}}
+
+# Create a pull request, close and reopen it in catppuccin-rfc/polybar
+pull_request:
+  #!/usr/bin/env bash
+  PR_URL=$(gh pr create --base main --head sgoudham-patch-1 --title "rockdove-{{datetime_utc("%Y%m%d_%H%M%S")}}" --body "rockdove" --repo catppuccin-rfc/polybar)
+  gh pr close "$PR_URL"
+  gh pr reopen "$PR_URL"
