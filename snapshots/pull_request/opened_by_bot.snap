@@ -1,8 +1,9 @@
 ---
 source: src/main.rs
+assertion_line: 657
 info:
   author_name_length: 13
-  colour_hex: "#A6E3A1"
+  colour_hex: "#89B4FA"
   description_length: 640
   title_length: 74
 ---
@@ -11,7 +12,7 @@ embeds:
       icon_url: "https://avatars.githubusercontent.com/in/2740?v=4"
       name: "renovate[bot]"
       url: "https://github.com/apps/renovate"
-    color: 10937249
+    color: 9024762
     description: "Welcome to [Renovate](https://redirect.github.com/renovatebot/renovate)! This is an onboarding PR to help you understand and configure settings before regular Pull Requests begin.\n\n🚦 To activate Renovate, merge this Pull Request. To disable Renovate, simply close this Pull Request unmerged.\n\n\n\n---\n### Detected Package Files\n\n * `Dockerfile` (dockerfile)\n * `.github/workflows/dockerfile.yml` (github-actions)\n * `.github/workflows/release.yaml` (github-actions)\n * `go.mod` (gomod)\n\n### Configuration Summary\n\nBased on the default config's presets, Renovate will:\n\n  - Start dependency updates only once this onboarding PR is merged..."
     title: "[catppuccin-rfc/cli-old] Pull request opened: #1 chore: Configure Renovate"
     url: "https://github.com/catppuccin-rfc/cli-old/pull/1"
