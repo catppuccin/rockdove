@@ -1,8 +1,18 @@
 {
-  "action": "submitted",
-  "review": {
-    "id": 2319885438,
-    "node_id": "PRR_kwDOIVi3Lc6KRqR-",
+  "action": "closed",
+  "number": 14,
+  "pull_request": {
+    "url": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/14",
+    "id": 2084635175,
+    "node_id": "PR_kwDOIVi3Lc58QQIn",
+    "html_url": "https://github.com/catppuccin-rfc/polybar/pull/14",
+    "diff_url": "https://github.com/catppuccin-rfc/polybar/pull/14.diff",
+    "patch_url": "https://github.com/catppuccin-rfc/polybar/pull/14.patch",
+    "issue_url": "https://api.github.com/repos/catppuccin-rfc/polybar/issues/14",
+    "number": 14,
+    "state": "closed",
+    "locked": false,
+    "title": "rockdove-20240921_181702",
     "user": {
       "login": "sgoudham",
       "id": 58985301,
@@ -23,60 +33,12 @@
       "type": "User",
       "site_admin": false
     },
-    "body": "a normal review",
-    "commit_id": "f8af40f25a8cf515c73367a1bbb079f7fc4d82d1",
-    "submitted_at": "2024-09-21T18:20:53Z",
-    "state": "commented",
-    "html_url": "https://github.com/catppuccin-rfc/polybar/pull/3#pullrequestreview-2319885438",
-    "pull_request_url": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/3",
-    "author_association": "NONE",
-    "_links": {
-      "html": {
-        "href": "https://github.com/catppuccin-rfc/polybar/pull/3#pullrequestreview-2319885438"
-      },
-      "pull_request": {
-        "href": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/3"
-      }
-    }
-  },
-  "pull_request": {
-    "url": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/3",
-    "id": 2077352221,
-    "node_id": "PR_kwDOIVi3Lc570eEd",
-    "html_url": "https://github.com/catppuccin-rfc/polybar/pull/3",
-    "diff_url": "https://github.com/catppuccin-rfc/polybar/pull/3.diff",
-    "patch_url": "https://github.com/catppuccin-rfc/polybar/pull/3.patch",
-    "issue_url": "https://api.github.com/repos/catppuccin-rfc/polybar/issues/3",
-    "number": 3,
-    "state": "open",
-    "locked": false,
-    "title": "chore: Configure Renovate",
-    "user": {
-      "login": "renovate[bot]",
-      "id": 29139614,
-      "node_id": "MDM6Qm90MjkxMzk2MTQ=",
-      "avatar_url": "https://avatars.githubusercontent.com/in/2740?v=4",
-      "gravatar_id": "",
-      "url": "https://api.github.com/users/renovate%5Bbot%5D",
-      "html_url": "https://github.com/apps/renovate",
-      "followers_url": "https://api.github.com/users/renovate%5Bbot%5D/followers",
-      "following_url": "https://api.github.com/users/renovate%5Bbot%5D/following{/other_user}",
-      "gists_url": "https://api.github.com/users/renovate%5Bbot%5D/gists{/gist_id}",
-      "starred_url": "https://api.github.com/users/renovate%5Bbot%5D/starred{/owner}{/repo}",
-      "subscriptions_url": "https://api.github.com/users/renovate%5Bbot%5D/subscriptions",
-      "organizations_url": "https://api.github.com/users/renovate%5Bbot%5D/orgs",
-      "repos_url": "https://api.github.com/users/renovate%5Bbot%5D/repos",
-      "events_url": "https://api.github.com/users/renovate%5Bbot%5D/events{/privacy}",
-      "received_events_url": "https://api.github.com/users/renovate%5Bbot%5D/received_events",
-      "type": "Bot",
-      "site_admin": false
-    },
-    "body": "Welcome to [Renovate](https://redirect.github.com/renovatebot/renovate)! This is an onboarding PR to help you understand and configure settings before regular Pull Requests begin.\n\n\ud83d\udea6 To activate Renovate, merge this Pull Request. To disable Renovate, simply close this Pull Request unmerged.\n\n\n\n---\n\n### Configuration Summary\n\nBased on the default config's presets, Renovate will:\n\n  - Start dependency updates only once this onboarding PR is merged\n  - Show all Merge Confidence badges for pull requests.\n  - Enable Renovate Dependency Dashboard creation.\n  - Use semantic commit type `fix` for dependencies and `chore` for all others if semantic commits are in use.\n  - Ignore `node_modules`, `bower_components`, `vendor` and various test/tests (except for nuget) directories.\n  - Group known monorepo packages together.\n  - Use curated list of recommended non-monorepo package groupings.\n  - Apply crowd-sourced package replacement rules.\n  - Apply crowd-sourced workarounds for known problems with packages.\n\n\ud83d\udd21 Do you want to change how Renovate upgrades your dependencies? Add your custom config to `renovate.json` in this branch. Renovate will update the Pull Request description the next time it runs.\n\n---\n\n### What to Expect\n\nIt looks like your repository dependencies are already up-to-date and no Pull Requests will be necessary right away.\n\n---\n\n\u2753 Got questions? Check out Renovate's [Docs](https://docs.renovatebot.com/), particularly the Getting Started section.\nIf you need any further assistance then you can also [request help here](https://redirect.github.com/renovatebot/renovate/discussions).\n\n---\n\nThis PR was generated by [Mend Renovate](https://mend.io/renovate/). View the [repository job log](https://developer.mend.io/github/catppuccin-rfc/polybar).\n\n<!--renovate-config-hash:e80b4e42a3043bc12fa0640db4bac392d2bf770acf841360d7c8ceeeac2ec1a9-->\n",
-    "created_at": "2024-09-17T21:44:56Z",
-    "updated_at": "2024-09-21T18:20:53Z",
-    "closed_at": null,
+    "body": "rockdove",
+    "created_at": "2024-09-21T18:17:03Z",
+    "updated_at": "2024-09-21T18:17:04Z",
+    "closed_at": "2024-09-21T18:17:04Z",
     "merged_at": null,
-    "merge_commit_sha": "5e615d5200c53404175b3dbf6a03f4b893ab6288",
+    "merge_commit_sha": "145dae8fa7af261718808be649407741dd2fd3c6",
     "assignee": null,
     "assignees": [],
     "requested_reviewers": [],
@@ -84,15 +46,15 @@
     "labels": [],
     "milestone": null,
     "draft": false,
-    "commits_url": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/3/commits",
-    "review_comments_url": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/3/comments",
+    "commits_url": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/14/commits",
+    "review_comments_url": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/14/comments",
     "review_comment_url": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/comments{/number}",
-    "comments_url": "https://api.github.com/repos/catppuccin-rfc/polybar/issues/3/comments",
-    "statuses_url": "https://api.github.com/repos/catppuccin-rfc/polybar/statuses/f8af40f25a8cf515c73367a1bbb079f7fc4d82d1",
+    "comments_url": "https://api.github.com/repos/catppuccin-rfc/polybar/issues/14/comments",
+    "statuses_url": "https://api.github.com/repos/catppuccin-rfc/polybar/statuses/372438fcc377136286d9171dc3ab2e3707ddffb4",
     "head": {
-      "label": "catppuccin-rfc:renovate/configure",
-      "ref": "renovate/configure",
-      "sha": "f8af40f25a8cf515c73367a1bbb079f7fc4d82d1",
+      "label": "catppuccin-rfc:sgoudham-patch-1",
+      "ref": "sgoudham-patch-1",
+      "sha": "372438fcc377136286d9171dc3ab2e3707ddffb4",
       "user": {
         "login": "catppuccin-rfc",
         "id": 111534585,
@@ -201,7 +163,7 @@
         "mirror_url": null,
         "archived": false,
         "disabled": false,
-        "open_issues_count": 4,
+        "open_issues_count": 3,
         "license": {
           "key": "mit",
           "name": "MIT License",
@@ -215,7 +177,7 @@
         "topics": [],
         "visibility": "public",
         "forks": 0,
-        "open_issues": 4,
+        "open_issues": 3,
         "watchers": 0,
         "default_branch": "main",
         "allow_squash_merge": true,
@@ -343,7 +305,7 @@
         "mirror_url": null,
         "archived": false,
         "disabled": false,
-        "open_issues_count": 4,
+        "open_issues_count": 3,
         "license": {
           "key": "mit",
           "name": "MIT License",
@@ -357,7 +319,7 @@
         "topics": [],
         "visibility": "public",
         "forks": 0,
-        "open_issues": 4,
+        "open_issues": 3,
         "watchers": 0,
         "default_branch": "main",
         "allow_squash_merge": true,
@@ -375,33 +337,45 @@
     },
     "_links": {
       "self": {
-        "href": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/3"
+        "href": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/14"
       },
       "html": {
-        "href": "https://github.com/catppuccin-rfc/polybar/pull/3"
+        "href": "https://github.com/catppuccin-rfc/polybar/pull/14"
       },
       "issue": {
-        "href": "https://api.github.com/repos/catppuccin-rfc/polybar/issues/3"
+        "href": "https://api.github.com/repos/catppuccin-rfc/polybar/issues/14"
       },
       "comments": {
-        "href": "https://api.github.com/repos/catppuccin-rfc/polybar/issues/3/comments"
+        "href": "https://api.github.com/repos/catppuccin-rfc/polybar/issues/14/comments"
       },
       "review_comments": {
-        "href": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/3/comments"
+        "href": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/14/comments"
       },
       "review_comment": {
         "href": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/comments{/number}"
       },
       "commits": {
-        "href": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/3/commits"
+        "href": "https://api.github.com/repos/catppuccin-rfc/polybar/pulls/14/commits"
       },
       "statuses": {
-        "href": "https://api.github.com/repos/catppuccin-rfc/polybar/statuses/f8af40f25a8cf515c73367a1bbb079f7fc4d82d1"
+        "href": "https://api.github.com/repos/catppuccin-rfc/polybar/statuses/372438fcc377136286d9171dc3ab2e3707ddffb4"
       }
     },
     "author_association": "NONE",
     "auto_merge": null,
-    "active_lock_reason": null
+    "active_lock_reason": null,
+    "merged": false,
+    "mergeable": true,
+    "rebaseable": true,
+    "mergeable_state": "clean",
+    "merged_by": null,
+    "comments": 0,
+    "review_comments": 0,
+    "maintainer_can_modify": false,
+    "commits": 1,
+    "additions": 0,
+    "deletions": 27,
+    "changed_files": 1
   },
   "repository": {
     "id": 559462189,
@@ -491,7 +465,7 @@
     "mirror_url": null,
     "archived": false,
     "disabled": false,
-    "open_issues_count": 4,
+    "open_issues_count": 3,
     "license": {
       "key": "mit",
       "name": "MIT License",
@@ -505,7 +479,7 @@
     "topics": [],
     "visibility": "public",
     "forks": 0,
-    "open_issues": 4,
+    "open_issues": 3,
     "watchers": 0,
     "default_branch": "main",
     "custom_properties": {}
