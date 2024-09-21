@@ -477,7 +477,7 @@ fn make_pull_request_review_embed(
         embed.description(body);
     }
 
-    embed.color(REPO_COLOR);
+    embed.color(PULL_REQUEST_COLOR);
 
     Some(embed)
 }
