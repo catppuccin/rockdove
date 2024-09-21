@@ -650,34 +650,6 @@ mod tests {
         assert!(embed.is_none());
     }
 
-    #[test]
-    fn test_repository_transferred() {
-        let payload = include_str!("../fixtures/repository_transferred.json");
-        let event = WebhookEvent::try_from_header_and_body("repository", payload)
-            .expect("event fixture is valid");
-        let embed = make_embed(event)
-            .expect("make_embed should succeed")
-            .expect("event fixture can be turned into an embed");
-        assert_eq!(
-            embed["embeds"][0]["title"].as_str().unwrap(),
-            "[catppuccin-rfc/polybar] Repository transferred from backwardspy to catppuccin-rfc"
-        );
-    }
-
-    #[test]
-    fn test_repository_renamed() {
-        let payload = include_str!("../fixtures/repository_renamed.json");
-        let event = WebhookEvent::try_from_header_and_body("repository", payload)
-            .expect("event fixture is valid");
-        let embed = make_embed(event)
-            .expect("make_embed should succeed")
-            .expect("event fixture can be turned into an embed");
-        assert_eq!(
-            embed["embeds"][0]["title"].as_str().unwrap(),
-            "[catppuccin-rfc/polybar-2] Repository renamed from polybar to polybar-2"
-        );
-    }
-
     mod issues {
         use crate::make_embed;
         use octocrab::models::webhook_events::WebhookEvent;
@@ -725,10 +697,56 @@ mod tests {
         }
     }
 
-    mod issue_comment {
+    mod repository {
+        use crate::make_embed;
         use octocrab::models::webhook_events::WebhookEvent;
 
+        #[test]
+        fn created() {
+            let payload = include_str!("../fixtures/repository/created.json");
+            let event = WebhookEvent::try_from_header_and_body("repository", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+            assert_eq!(
+                embed["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc/to-be-transferred] Repository created"
+            );
+        }
+
+        #[test]
+        fn renamed() {
+            let payload = include_str!("../fixtures/repository/renamed.json");
+            let event = WebhookEvent::try_from_header_and_body("repository", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+            assert_eq!(
+                embed["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc/renamed-1] Repository renamed from renamed to renamed-1"
+            );
+        }
+
+        #[test]
+        fn transferred() {
+            let payload = include_str!("../fixtures/repository/transferred.json");
+            let event = WebhookEvent::try_from_header_and_body("repository", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+            assert_eq!(
+                embed["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc/to-be-transferred] Repository transferred from sgoudham to catppuccin-rfc"
+            );
+        }
+    }
+
+    mod issue_comment {
         use crate::make_embed;
+        use octocrab::models::webhook_events::WebhookEvent;
 
         #[test]
         fn created() {
