@@ -600,54 +600,74 @@ fn hook_target(event: &WebhookEvent) -> HookTarget {
 
 #[cfg(test)]
 mod tests {
-    use octocrab::models::webhook_events::WebhookEvent;
+    mod pull_request {
+        use crate::make_embed;
+        use octocrab::models::webhook_events::WebhookEvent;
 
-    use crate::make_embed;
+        #[test]
+        fn opened() {
+            let payload = include_str!("../fixtures/pull_request/opened.json");
+            let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+            assert_eq!(
+                embed["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc/polybar] Pull request opened: #14 rockdove-20240921_181702"
+            );
+        }
 
-    #[test]
-    fn test_bot_pull_request_opened() {
-        let payload = include_str!("../fixtures/bot_pull_request_opened.json");
-        let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
-            .expect("event fixture is valid");
-        let embed = make_embed(event)
-            .expect("make_embed should succeed")
-            .expect("event fixture can be turned into an embed");
-        assert_eq!(
-            embed["embeds"][0]["title"].as_str().unwrap(),
-            "[catppuccin-rfc/cli-old] Pull request opened: #1 chore: Configure Renovate"
-        );
-    }
+        #[test]
+        fn opened_by_bot() {
+            let payload = include_str!("../fixtures/pull_request/opened_by_bot.json");
+            let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+            assert_eq!(
+                embed["embeds"][0]["description"]
+                    .as_str()
+                    .unwrap()
+                    .split_once('!')
+                    .unwrap()
+                    .0,
+                "Welcome to [Renovate](https://redirect.github.com/renovatebot/renovate)"
+            );
+            assert_eq!(
+                embed["embeds"][0]["description"].as_str().unwrap().len(),
+                640
+            );
+        }
 
-    #[test]
-    fn test_limit_description_on_pull_request() {
-        let payload = include_str!("../fixtures/bot_pull_request_opened.json");
-        let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
-            .expect("event fixture is valid");
-        let embed = make_embed(event)
-            .expect("make_embed should succeed")
-            .expect("event fixture can be turned into an embed");
-        assert_eq!(
-            embed["embeds"][0]["description"]
-                .as_str()
-                .unwrap()
-                .split_once('!')
-                .unwrap()
-                .0,
-            "Welcome to [Renovate](https://redirect.github.com/renovatebot/renovate)"
-        );
-        assert_eq!(
-            embed["embeds"][0]["description"].as_str().unwrap().len(),
-            640
-        );
-    }
+        #[test]
+        fn closed() {
+            let payload = include_str!("../fixtures/pull_request/closed.json");
+            let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+            assert_eq!(
+                embed["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc/polybar] Pull request closed: #14 rockdove-20240921_181702"
+            );
+        }
 
-    #[test]
-    fn test_ignore_pr_events() {
-        let payload = include_str!("../fixtures/pull_request_synchronize.json");
-        let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
-            .expect("event fixture is valid");
-        let embed = make_embed(event).expect("make_embed should succeed");
-        assert!(embed.is_none());
+        #[test]
+        fn reopened() {
+            let payload = include_str!("../fixtures/pull_request/reopened.json");
+            let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+            assert_eq!(
+                embed["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc/polybar] Pull request reopened: #14 rockdove-20240921_181702"
+            );
+        }
     }
 
     mod issues {
@@ -683,7 +703,7 @@ mod tests {
         }
 
         #[test]
-        fn reopend() {
+        fn reopened() {
             let payload = include_str!("../fixtures/issues/reopened.json");
             let event = WebhookEvent::try_from_header_and_body("issues", payload)
                 .expect("event fixture is valid");
@@ -744,48 +764,6 @@ mod tests {
         }
     }
 
-    mod issue_comment {
-        use crate::make_embed;
-        use octocrab::models::webhook_events::WebhookEvent;
-
-        #[test]
-        fn created() {
-            let payload = include_str!("../fixtures/issue_comment/created.json");
-            let event = WebhookEvent::try_from_header_and_body("issue_comment", payload)
-                .expect("event fixture is valid");
-            let embed = make_embed(event)
-                .expect("make_embed should succeed")
-                .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin/java] New comment on issue #20: Reconsider OSSRH Authentication"
-            );
-        }
-
-        #[test]
-        fn created_on_pull_request() {
-            let payload = include_str!("../fixtures/issue_comment/created_on_pull_request.json");
-            let event = WebhookEvent::try_from_header_and_body("issue_comment", payload)
-                .expect("event fixture is valid");
-            let embed = make_embed(event)
-                .expect("make_embed should succeed")
-                .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin/userstyles] New comment on pull request #1323: feat(fontawesome): init"
-            );
-        }
-
-        #[test]
-        fn deleted() {
-            let payload = include_str!("../fixtures/issue_comment/deleted.json");
-            let event = WebhookEvent::try_from_header_and_body("issue_comment", payload)
-                .expect("event fixture is valid");
-            let embed = make_embed(event).expect("make_embed should succeed");
-            assert!(embed.is_none());
-        }
-    }
-
     mod pull_request_review {
         use octocrab::models::webhook_events::WebhookEvent;
 
@@ -832,8 +810,50 @@ mod tests {
             );
             assert_eq!(
                 embed["embeds"][0]["description"].as_str().unwrap(),
-                "normal"
+                "a normal review"
             );
+        }
+    }
+
+    mod issue_comment {
+        use crate::make_embed;
+        use octocrab::models::webhook_events::WebhookEvent;
+
+        #[test]
+        fn created() {
+            let payload = include_str!("../fixtures/issue_comment/created.json");
+            let event = WebhookEvent::try_from_header_and_body("issue_comment", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+            assert_eq!(
+                embed["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin/java] New comment on issue #20: Reconsider OSSRH Authentication"
+            );
+        }
+
+        #[test]
+        fn created_on_pull_request() {
+            let payload = include_str!("../fixtures/issue_comment/created_on_pull_request.json");
+            let event = WebhookEvent::try_from_header_and_body("issue_comment", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+            assert_eq!(
+                embed["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin/userstyles] New comment on pull request #1323: feat(fontawesome): init"
+            );
+        }
+
+        #[test]
+        fn deleted() {
+            let payload = include_str!("../fixtures/issue_comment/deleted.json");
+            let event = WebhookEvent::try_from_header_and_body("issue_comment", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event).expect("make_embed should succeed");
+            assert!(embed.is_none());
         }
     }
 
