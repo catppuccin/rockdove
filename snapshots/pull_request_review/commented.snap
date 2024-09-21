@@ -1,0 +1,17 @@
+---
+source: src/main.rs
+info:
+  author_name_length: 8
+  colour_hex: "#89B4FA"
+  description_length: 15
+  title_length: 76
+---
+embeds:
+  - author:
+      icon_url: "https://avatars.githubusercontent.com/u/58985301?v=4"
+      name: sgoudham
+      url: "https://github.com/sgoudham"
+    color: 9024762
+    description: a normal review
+    title: "[catppuccin-rfc/polybar] Pull request reviewed: #3 chore: Configure Renovate"
+    url: "https://github.com/catppuccin-rfc/polybar/pull/3#pullrequestreview-2319885438"

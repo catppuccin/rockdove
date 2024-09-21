@@ -1,0 +1,17 @@
+---
+source: src/main.rs
+info:
+  author_name_length: 7
+  colour_hex: "#89B4FA"
+  description_length: 38
+  title_length: 82
+---
+embeds:
+  - author:
+      icon_url: "https://avatars.githubusercontent.com/u/97406176?v=4"
+      name: trinkey
+      url: "https://github.com/trinkey"
+    color: 9024762
+    description: "404 page isn't styled ughhhhhhhhhhhhhh"
+    title: "[catppuccin/userstyles] New comment on pull request #1323: feat(fontawesome): init"
+    url: "https://github.com/catppuccin/userstyles/pull/1323#issuecomment-2357211297"
