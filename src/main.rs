@@ -651,29 +651,6 @@ mod tests {
     }
 
     #[test]
-    fn test_issue_opened() {
-        let payload = include_str!("../fixtures/issue_opened.json");
-        let event = WebhookEvent::try_from_header_and_body("issues", payload)
-            .expect("event fixture is valid");
-        let embed = make_embed(event)
-            .expect("make_embed should succeed")
-            .expect("event fixture can be turned into an embed");
-        assert_eq!(
-            embed["embeds"][0]["title"].as_str().unwrap(),
-            "[catppuccin/userstyles] Issue opened: #1318 LinkedIn: Profile picture edition icons and text is u..."
-        );
-    }
-
-    #[test]
-    fn test_ignore_issue_events() {
-        let payload = include_str!("../fixtures/issue_unassigned.json");
-        let event = WebhookEvent::try_from_header_and_body("issues", payload)
-            .expect("event fixture is valid");
-        let embed = make_embed(event).expect("make_embed should succeed");
-        assert!(embed.is_none());
-    }
-
-    #[test]
     fn test_repository_transferred() {
         let payload = include_str!("../fixtures/repository_transferred.json");
         let event = WebhookEvent::try_from_header_and_body("repository", payload)
@@ -699,6 +676,53 @@ mod tests {
             embed["embeds"][0]["title"].as_str().unwrap(),
             "[catppuccin-rfc/polybar-2] Repository renamed from polybar to polybar-2"
         );
+    }
+
+    mod issues {
+        use crate::make_embed;
+        use octocrab::models::webhook_events::WebhookEvent;
+
+        #[test]
+        fn opened() {
+            let payload = include_str!("../fixtures/issues/opened.json");
+            let event = WebhookEvent::try_from_header_and_body("issues", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+            assert_eq!(
+                embed["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc/polybar] Issue opened: #13 rockdove-20240921_170510"
+            );
+        }
+
+        #[test]
+        fn closed() {
+            let payload = include_str!("../fixtures/issues/closed.json");
+            let event = WebhookEvent::try_from_header_and_body("issues", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+            assert_eq!(
+                embed["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc/polybar] Issue closed: #13 rockdove-20240921_170510"
+            );
+        }
+
+        #[test]
+        fn reopend() {
+            let payload = include_str!("../fixtures/issues/reopened.json");
+            let event = WebhookEvent::try_from_header_and_body("issues", payload)
+                .expect("event fixture is valid");
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+            assert_eq!(
+                embed["embeds"][0]["title"].as_str().unwrap(),
+                "[catppuccin-rfc/polybar] Issue reopened: #13 rockdove-20240921_170510"
+            );
+        }
     }
 
     mod issue_comment {
