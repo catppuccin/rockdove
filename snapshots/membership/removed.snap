@@ -1,0 +1,17 @@
+---
+source: src/main.rs
+info:
+  author_name_length: 8
+  colour_hex: "#1E1E2E"
+  description_length: 0
+  title_length: 52
+---
+embeds:
+  - author:
+      icon_url: "https://avatars.githubusercontent.com/u/58985301?v=4"
+      name: sgoudham
+      url: "https://github.com/sgoudham"
+    color: 1973806
+    description: ~
+    title: "[catppuccin-rfc] backwardspy removed from staff team"
+    url: "https://github.com/orgs/catppuccin-rfc/teams/staff"

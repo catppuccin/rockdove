@@ -1,0 +1,17 @@
+---
+source: src/main.rs
+info:
+  author_name_length: 8
+  colour_hex: "#A6E3A1"
+  description_length: 7
+  title_length: 75
+---
+embeds:
+  - author:
+      icon_url: "https://avatars.githubusercontent.com/u/58985301?v=4"
+      name: sgoudham
+      url: "https://github.com/sgoudham"
+    color: 10937249
+    description: Testing
+    title: "[catppuccin/java] New comment on issue #20: Reconsider OSSRH Authentication"
+    url: "https://github.com/catppuccin/java/issues/20#issuecomment-2351090061"

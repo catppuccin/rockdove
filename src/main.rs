@@ -600,292 +600,346 @@ fn hook_target(event: &WebhookEvent) -> HookTarget {
 
 #[cfg(test)]
 mod tests {
+    use octocrab::models::webhook_events::WebhookEvent;
+    use serde_json::json;
+
+    struct TestConfig {
+        event: WebhookEvent,
+        settings: insta::Settings,
+    }
+
+    impl TestConfig {
+        fn new(event_type: &str, payload: &str) -> Self {
+            let event = WebhookEvent::try_from_header_and_body(event_type, payload)
+                .expect("event fixture is valid");
+            let mut settings = insta::Settings::new();
+            settings.set_omit_expression(true);
+            settings.set_snapshot_path(format!("../snapshots/{event_type}"));
+            settings.set_prepend_module_to_snapshot(false);
+            Self { event, settings }
+        }
+    }
+
+    fn embed_context(embed: &serde_json::Value) -> serde_json::Value {
+        json!({
+            "author_name_length": &embed["embeds"][0]["author"]["name"].as_str().unwrap().len(),
+            "title_length": &embed["embeds"][0]["title"].as_str().unwrap().len(),
+            "description_length": &embed["embeds"][0]["description"].as_str().unwrap_or("").len(),
+            "colour_hex": format!("#{:X}", embed["embeds"][0]["color"].as_u64().unwrap()),
+        })
+    }
+
     mod pull_request {
-        use crate::make_embed;
-        use octocrab::models::webhook_events::WebhookEvent;
+        use crate::{
+            make_embed,
+            tests::{embed_context, TestConfig},
+        };
 
         #[test]
         fn opened() {
             let payload = include_str!("../fixtures/pull_request/opened.json");
-            let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
-                .expect("event fixture is valid");
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("pull_request", payload);
+
             let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc/polybar] Pull request opened: #14 rockdove-20240921_181702"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
 
         #[test]
         fn opened_by_bot() {
             let payload = include_str!("../fixtures/pull_request/opened_by_bot.json");
-            let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
-                .expect("event fixture is valid");
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("pull_request", payload);
+
             let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["description"]
-                    .as_str()
-                    .unwrap()
-                    .split_once('!')
-                    .unwrap()
-                    .0,
-                "Welcome to [Renovate](https://redirect.github.com/renovatebot/renovate)"
-            );
-            assert_eq!(
-                embed["embeds"][0]["description"].as_str().unwrap().len(),
-                640
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
 
         #[test]
         fn closed() {
             let payload = include_str!("../fixtures/pull_request/closed.json");
-            let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
-                .expect("event fixture is valid");
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("pull_request", payload);
+
             let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc/polybar] Pull request closed: #14 rockdove-20240921_181702"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
 
         #[test]
         fn reopened() {
             let payload = include_str!("../fixtures/pull_request/reopened.json");
-            let event = WebhookEvent::try_from_header_and_body("pull_request", payload)
-                .expect("event fixture is valid");
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("pull_request", payload);
+
             let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc/polybar] Pull request reopened: #14 rockdove-20240921_181702"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
     }
 
     mod issues {
-        use crate::make_embed;
-        use octocrab::models::webhook_events::WebhookEvent;
+        use crate::{
+            make_embed,
+            tests::{embed_context, TestConfig},
+        };
 
         #[test]
         fn opened() {
             let payload = include_str!("../fixtures/issues/opened.json");
-            let event = WebhookEvent::try_from_header_and_body("issues", payload)
-                .expect("event fixture is valid");
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("issues", payload);
+
             let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc/polybar] Issue opened: #13 rockdove-20240921_170510"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
 
         #[test]
         fn closed() {
             let payload = include_str!("../fixtures/issues/closed.json");
-            let event = WebhookEvent::try_from_header_and_body("issues", payload)
-                .expect("event fixture is valid");
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("issues", payload);
+
             let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc/polybar] Issue closed: #13 rockdove-20240921_170510"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
 
         #[test]
         fn reopened() {
             let payload = include_str!("../fixtures/issues/reopened.json");
-            let event = WebhookEvent::try_from_header_and_body("issues", payload)
-                .expect("event fixture is valid");
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("issues", payload);
+
             let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc/polybar] Issue reopened: #13 rockdove-20240921_170510"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
     }
 
     mod repository {
-        use crate::make_embed;
-        use octocrab::models::webhook_events::WebhookEvent;
+        use crate::{
+            make_embed,
+            tests::{embed_context, TestConfig},
+        };
 
         #[test]
         fn created() {
             let payload = include_str!("../fixtures/repository/created.json");
-            let event = WebhookEvent::try_from_header_and_body("repository", payload)
-                .expect("event fixture is valid");
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("repository", payload);
+
             let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc/to-be-transferred] Repository created"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
 
         #[test]
         fn renamed() {
             let payload = include_str!("../fixtures/repository/renamed.json");
-            let event = WebhookEvent::try_from_header_and_body("repository", payload)
-                .expect("event fixture is valid");
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("repository", payload);
+
             let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc/renamed-1] Repository renamed from renamed to renamed-1"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
 
         #[test]
         fn transferred() {
             let payload = include_str!("../fixtures/repository/transferred.json");
-            let event = WebhookEvent::try_from_header_and_body("repository", payload)
-                .expect("event fixture is valid");
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("repository", payload);
+
             let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc/to-be-transferred] Repository transferred from sgoudham to catppuccin-rfc"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
     }
 
     mod pull_request_review {
-        use octocrab::models::webhook_events::WebhookEvent;
+        use crate::{
+            make_embed,
+            tests::{embed_context, TestConfig},
+        };
 
         #[test]
         fn approved() {
             let payload = include_str!("../fixtures/pull_request_review/approved.json");
-            let event = WebhookEvent::try_from_header_and_body("pull_request_review", payload)
-                .expect("event fixture is valid");
-            let embed = crate::make_embed(event)
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("pull_request_review", payload);
+
+            let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc/polybar] Pull request approved: #3 chore: Configure Renovate"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
 
         #[test]
         fn changes_requested() {
             let payload = include_str!("../fixtures/pull_request_review/changes_requested.json");
-            let event = WebhookEvent::try_from_header_and_body("pull_request_review", payload)
-                .expect("event fixture is valid");
-            let embed = crate::make_embed(event)
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("pull_request_review", payload);
+
+            let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-            embed["embeds"][0]["title"].as_str().unwrap(),
-            "[catppuccin-rfc/polybar] Pull request changes requested: #3 chore: Configure Renovate"
-        );
-            assert_eq!(embed["embeds"][0]["description"].as_str().unwrap(), "test");
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
 
         #[test]
         fn commented() {
             let payload = include_str!("../fixtures/pull_request_review/commented.json");
-            let event = WebhookEvent::try_from_header_and_body("pull_request_review", payload)
-                .expect("event fixture is valid");
-            let embed = crate::make_embed(event)
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("pull_request_review", payload);
+
+            let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc/polybar] Pull request reviewed: #3 chore: Configure Renovate"
-            );
-            assert_eq!(
-                embed["embeds"][0]["description"].as_str().unwrap(),
-                "a normal review"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
     }
 
     mod issue_comment {
-        use crate::make_embed;
-        use octocrab::models::webhook_events::WebhookEvent;
+        use crate::{
+            make_embed,
+            tests::{embed_context, TestConfig},
+        };
 
         #[test]
         fn created() {
             let payload = include_str!("../fixtures/issue_comment/created.json");
-            let event = WebhookEvent::try_from_header_and_body("issue_comment", payload)
-                .expect("event fixture is valid");
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("issue_comment", payload);
+
             let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin/java] New comment on issue #20: Reconsider OSSRH Authentication"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
 
         #[test]
         fn created_on_pull_request() {
             let payload = include_str!("../fixtures/issue_comment/created_on_pull_request.json");
-            let event = WebhookEvent::try_from_header_and_body("issue_comment", payload)
-                .expect("event fixture is valid");
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("issue_comment", payload);
+
             let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin/userstyles] New comment on pull request #1323: feat(fontawesome): init"
-            );
-        }
 
-        #[test]
-        fn deleted() {
-            let payload = include_str!("../fixtures/issue_comment/deleted.json");
-            let event = WebhookEvent::try_from_header_and_body("issue_comment", payload)
-                .expect("event fixture is valid");
-            let embed = make_embed(event).expect("make_embed should succeed");
-            assert!(embed.is_none());
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
     }
 
     mod membership {
-        use octocrab::models::webhook_events::WebhookEvent;
+        use crate::{
+            make_embed,
+            tests::{embed_context, TestConfig},
+        };
 
         #[test]
         fn added() {
             let payload = include_str!("../fixtures/membership/added.json");
-            let event = WebhookEvent::try_from_header_and_body("membership", payload)
-                .expect("event fixture is valid");
-            let embed = crate::make_embed(event)
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("membership", payload);
+
+            let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc] backwardspy added to staff team"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
 
         #[test]
         fn removed() {
             let payload = include_str!("../fixtures/membership/removed.json");
-            let event = WebhookEvent::try_from_header_and_body("membership", payload)
-                .expect("event fixture is valid");
-            let embed = crate::make_embed(event)
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("membership", payload);
+
+            let embed = make_embed(event)
                 .expect("make_embed should succeed")
                 .expect("event fixture can be turned into an embed");
-            assert_eq!(
-                embed["embeds"][0]["title"].as_str().unwrap(),
-                "[catppuccin-rfc] backwardspy removed from staff team"
-            );
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
         }
     }
 }

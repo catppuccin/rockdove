@@ -1,0 +1,18 @@
+---
+source: src/main.rs
+assertion_line: 741
+info:
+  author_name_length: 8
+  colour_hex: "#A6E3A1"
+  description_length: 8
+  title_length: 67
+---
+embeds:
+  - author:
+      icon_url: "https://avatars.githubusercontent.com/u/58985301?v=4"
+      name: sgoudham
+      url: "https://github.com/sgoudham"
+    color: 10937249
+    description: rockdove
+    title: "[catppuccin-rfc/polybar] Issue opened: #13 rockdove-20240921_170510"
+    url: "https://github.com/catppuccin-rfc/polybar/issues/13"
