@@ -1,0 +1,17 @@
+---
+source: src/main.rs
+info:
+  author_name_length: 8
+  colour_hex: "#F5C2E7"
+  description_length: 0
+  title_length: 89
+---
+embeds:
+  - author:
+      icon_url: "https://avatars.githubusercontent.com/u/58985301?v=4"
+      name: sgoudham
+      url: "https://github.com/sgoudham"
+    color: 16106215
+    description: ~
+    title: "[catppuccin-rfc/to-be-transferred] Repository transferred from sgoudham to catppuccin-rfc"
+    url: "https://github.com/catppuccin-rfc/to-be-transferred"
