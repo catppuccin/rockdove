@@ -22,3 +22,12 @@ issues:
   gh issue close "$ISSUE_URL"
   gh issue reopen "$ISSUE_URL"
 
+# Rename an existing repository under catppuccin-rfc
+repository_rename current_repo new_repo:
+  gh repo rename {{new_repo}} --repo catppuccin-rfc/{{current_repo}}
+
+# The reason for using `gh api`: https://github.com/cli/cli/issues/5292
+#
+# Transfer an existing repository to a new owner
+repository_transfer current_owner_plus_repo new_owner:
+  gh api repos/{{current_owner_plus_repo}}/transfer -f new_owner={{new_owner}}
