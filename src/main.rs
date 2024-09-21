@@ -32,6 +32,7 @@ const ISSUE_COLOR: catppuccin::Color = COLORS.green;
 const PULL_REQUEST_COLOR: catppuccin::Color = COLORS.blue;
 const REPO_COLOR: catppuccin::Color = COLORS.yellow;
 const RELEASE_COLOR: catppuccin::Color = COLORS.mauve;
+const MEMBERSHIP_COLOR: catppuccin::Color = COLORS.base;
 
 #[derive(serde::Deserialize)]
 struct Config {
@@ -301,11 +302,7 @@ fn make_issue_embed(
         }
     }
 
-    embed.color(match specifics.action {
-        IssuesWebhookEventAction::Closed => COLORS.peach,
-        IssuesWebhookEventAction::Locked => COLORS.red,
-        _ => ISSUE_COLOR,
-    });
+    embed.color(ISSUE_COLOR);
 
     Some(embed)
 }
@@ -378,14 +375,7 @@ fn make_pull_request_embed(
         }
     }
 
-    embed.color(match specifics.action {
-        PullRequestWebhookEventAction::Closed => COLORS.peach,
-        PullRequestWebhookEventAction::Locked => COLORS.red,
-        PullRequestWebhookEventAction::Opened | PullRequestWebhookEventAction::ReadyForReview => {
-            COLORS.green
-        }
-        _ => PULL_REQUEST_COLOR,
-    });
+    embed.color(PULL_REQUEST_COLOR);
 
     Some(embed)
 }
@@ -563,7 +553,7 @@ fn make_membership_embed(
             .expect("team should always have an html url"),
     );
 
-    embed.color(COLORS.base);
+    embed.color(MEMBERSHIP_COLOR);
 
     Some(embed)
 }

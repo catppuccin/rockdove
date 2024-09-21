@@ -1,9 +1,9 @@
 ---
 source: src/main.rs
-assertion_line: 757
+assertion_line: 728
 info:
   author_name_length: 8
-  colour_hex: "#FAB387"
+  colour_hex: "#A6E3A1"
   description_length: 0
   title_length: 67
 ---
@@ -12,7 +12,7 @@ embeds:
       icon_url: "https://avatars.githubusercontent.com/u/58985301?v=4"
       name: sgoudham
       url: "https://github.com/sgoudham"
-    color: 16429959
+    color: 10937249
     description: ~
     title: "[catppuccin-rfc/polybar] Issue closed: #13 rockdove-20240921_170510"
     url: "https://github.com/catppuccin-rfc/polybar/issues/13"
