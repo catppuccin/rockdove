@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.15.2] - 2024-09-21
+
+### 🚜 Refactor
+
+- Remove most colour exceptions (#18)
+
+### 📚 Documentation
+
+- Add git-cliff changelog
+
+### 🧪 Testing
+
+- Add config to automate fixtures (#13)
+- Reorganise tests for `issues` event (#14)
+- Reorganise for `repository` event (#15)
+- Reorganise for `pull_request` event (#16)
+- Add snapshot tests via insta.rs (#17)
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version to 0.15.2
+
 ## [0.15.1] - 2024-09-21
 
 ### 🐛 Bug Fixes
