@@ -176,6 +176,7 @@ async fn send_error_hook(e: &RockdoveError, hook: &str) {
     embed.description(&e.to_string());
     embed.color(COLORS.red);
     embed.author(make_hammy());
+    embed.url("https://goudham.com/");
     let msg = embed
         .try_build()
         .expect("error embed should always be valid");
