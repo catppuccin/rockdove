@@ -3,7 +3,7 @@ use octocrab::models::webhook_events::{
     WebhookEvent,
 };
 
-use crate::{embed_builder::EmbedBuilder, DISCUSSION_COLOR};
+use crate::{colors::DISCUSSION_COLOR, embed_builder::EmbedBuilder};
 
 // TODO: Create a PR to upstream (octocrab) to add typed events so that we don't
 // need to use `.get()`, `.as_str()`, etc.

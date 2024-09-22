@@ -3,9 +3,10 @@ use octocrab::models::webhook_events::{
     WebhookEvent,
 };
 
-use crate::{embed_builder::EmbedBuilder, COLORS};
-
-const REPO_COLOR: catppuccin::Color = COLORS.yellow;
+use crate::{
+    colors::{COLORS, REPO_COLOR},
+    embed_builder::EmbedBuilder,
+};
 
 pub fn make_repository_embed(
     event: WebhookEvent,

@@ -3,7 +3,10 @@ use octocrab::models::webhook_events::{
     WebhookEvent,
 };
 
-use crate::{embed_builder::EmbedBuilder, ISSUE_COLOR, PULL_REQUEST_COLOR};
+use crate::{
+    colors::{ISSUE_COLOR, PULL_REQUEST_COLOR},
+    embed_builder::EmbedBuilder,
+};
 
 pub fn make_issue_comment_embed(
     event: WebhookEvent,

@@ -3,7 +3,7 @@ use octocrab::models::webhook_events::{
     WebhookEvent,
 };
 
-use crate::{embed_builder::EmbedBuilder, ISSUE_COLOR};
+use crate::{colors::ISSUE_COLOR, embed_builder::EmbedBuilder};
 
 pub fn make_issues_embed(
     event: WebhookEvent,

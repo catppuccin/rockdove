@@ -6,7 +6,7 @@ use octocrab::models::{
     },
 };
 
-use crate::{embed_builder::EmbedBuilder, PULL_REQUEST_COLOR};
+use crate::{colors::PULL_REQUEST_COLOR, embed_builder::EmbedBuilder};
 
 pub fn make_pull_request_review_embed(
     event: WebhookEvent,

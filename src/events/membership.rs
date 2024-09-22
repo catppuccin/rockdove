@@ -4,7 +4,7 @@ use octocrab::models::webhook_events::{
 };
 use tracing::warn;
 
-use crate::{embed_builder::EmbedBuilder, MEMBERSHIP_COLOR};
+use crate::{colors::MEMBERSHIP_COLOR, embed_builder::EmbedBuilder};
 
 pub fn make_membership_embed(
     event: WebhookEvent,
