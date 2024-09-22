@@ -1,0 +1,2 @@
+FROM mcr.microsoft.com/devcontainers/base:bookworm
+RUN apt update && apt -y install pkg-config

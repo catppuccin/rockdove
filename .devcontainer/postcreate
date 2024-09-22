@@ -1,0 +1,4 @@
+#!/bin/bash
+set -euxo pipefail
+IFS=$'\n\t'
+sudo chown vscode:vscode target .ra-target
