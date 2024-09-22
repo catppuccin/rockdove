@@ -6,15 +6,19 @@ use octocrab::models::webhook_events::{
 use crate::{
     colors::{COLORS, REPO_COLOR},
     embed_builder::EmbedBuilder,
+    errors::{RockdoveError, RockdoveResult},
 };
 
-pub fn make_repository_embed(
+pub fn make_embed(
     event: WebhookEvent,
     specifics: &RepositoryWebhookEventPayload,
-) -> Option<EmbedBuilder> {
+) -> RockdoveResult<Option<EmbedBuilder>> {
     let repo = event
         .repository
-        .expect("repository events should always have a repository");
+        .ok_or_else(|| RockdoveError::MissingField {
+            event_type: event.kind.clone(),
+            field: "repository",
+        })?;
 
     let mut embed = EmbedBuilder::default();
 
@@ -33,13 +37,22 @@ pub fn make_repository_embed(
                     specifics
                         .changes
                         .as_ref()
-                        .expect("repository renamed event should always have changes")
+                        .ok_or_else(|| RockdoveError::MissingField {
+                            event_type: event.kind.clone(),
+                            field: "changes",
+                        })?
                         .repository
                         .as_ref()
-                        .expect("repository renamed event changes should always have a repository")
+                        .ok_or_else(|| RockdoveError::MissingField {
+                            event_type: event.kind.clone(),
+                            field: "changes.repository",
+                        })?
                         .name
                         .as_ref()
-                        .expect("repository renamed event changes should always have a name")
+                        .ok_or_else(|| RockdoveError::MissingField {
+                            event_type: event.kind.clone(),
+                            field: "changes.repository.name",
+                        })?
                         .from,
                     repo.name,
                 )
@@ -50,28 +63,40 @@ pub fn make_repository_embed(
                     specifics
                         .changes
                         .as_ref()
-                        .expect("repository transferred event should always have changes")
+                        .ok_or_else(|| RockdoveError::MissingField {
+                            event_type: event.kind.clone(),
+                            field: "changes",
+                        })?
                         .owner
                         .as_ref()
-                        .expect("repository transferred event changes should always have an owner")
+                        .ok_or_else(|| RockdoveError::MissingField {
+                            event_type: event.kind.clone(),
+                            field: "changes.owner",
+                        })?
                         .from
                         .user
                         .login,
                     repo.owner
-                        .expect("repository should always have an owner")
+                        .ok_or_else(|| RockdoveError::MissingField {
+                            event_type: event.kind.clone(),
+                            field: "repository.owner",
+                        })?
                         .login
                 )
             }
             RepositoryWebhookEventAction::Unarchived => "unarchived".to_string(),
             _ => {
-                return None;
+                return Ok(None);
             }
         }
     ));
 
     embed.url(
         repo.html_url
-            .expect("repository should always have an html url")
+            .ok_or_else(|| RockdoveError::MissingField {
+                event_type: event.kind.clone(),
+                field: "repository.html_url",
+            })?
             .as_str(),
     );
 
@@ -81,13 +106,13 @@ pub fn make_repository_embed(
         _ => REPO_COLOR,
     });
 
-    Some(embed)
+    Ok(Some(embed))
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        make_embed,
+        events::make_embed,
         tests::{embed_context, TestConfig},
     };
     use std::fs;

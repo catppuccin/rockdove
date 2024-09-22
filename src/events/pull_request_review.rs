@@ -6,22 +6,29 @@ use octocrab::models::{
     },
 };
 
-use crate::{colors::PULL_REQUEST_COLOR, embed_builder::EmbedBuilder};
+use crate::{
+    colors::PULL_REQUEST_COLOR,
+    embed_builder::EmbedBuilder,
+    errors::{RockdoveError, RockdoveResult},
+};
 
-pub fn make_pull_request_review_embed(
+pub fn make_embed(
     event: WebhookEvent,
     specifics: &PullRequestReviewWebhookEventPayload,
-) -> Option<EmbedBuilder> {
+) -> RockdoveResult<Option<EmbedBuilder>> {
     if !matches!(
         specifics.action,
         PullRequestReviewWebhookEventAction::Submitted
     ) {
-        return None;
+        return Ok(None);
     }
 
     let repo = event
         .repository
-        .expect("pull request review events should always have a repository");
+        .ok_or_else(|| RockdoveError::MissingField {
+            event_type: event.kind.clone(),
+            field: "repository",
+        })?;
 
     let mut embed = EmbedBuilder::default();
 
@@ -33,19 +40,24 @@ pub fn make_pull_request_review_embed(
         match specifics
             .review
             .state
-            .expect("pull request review should always have a state")
-        {
+            .ok_or_else(|| RockdoveError::MissingField {
+                event_type: event.kind.clone(),
+                field: "review.state",
+            })? {
             ReviewState::Approved => "approved",
             ReviewState::ChangesRequested => "changes requested",
             ReviewState::Commented => "reviewed",
-            _ => return None,
+            _ => return Ok(None),
         },
         specifics.pull_request.number,
         specifics
             .pull_request
             .title
             .as_ref()
-            .expect("pull request should always have a title"),
+            .ok_or_else(|| RockdoveError::MissingField {
+                event_type: event.kind.clone(),
+                field: "pull_request.title",
+            })?
     ));
 
     embed.url(specifics.review.html_url.as_str());
@@ -56,13 +68,13 @@ pub fn make_pull_request_review_embed(
 
     embed.color(PULL_REQUEST_COLOR);
 
-    Some(embed)
+    Ok(Some(embed))
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        make_embed,
+        events::make_embed,
         tests::{embed_context, TestConfig},
     };
     use std::fs;

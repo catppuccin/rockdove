@@ -1,14 +1,21 @@
 use octocrab::models::webhook_events::{payload::CommitCommentWebhookEventPayload, WebhookEvent};
 
-use crate::{colors::COMMIT_COLOR, embed_builder::EmbedBuilder};
+use crate::{
+    colors::COMMIT_COLOR,
+    embed_builder::EmbedBuilder,
+    errors::{RockdoveError, RockdoveResult},
+};
 
-pub fn make_commit_comment_embed(
+pub fn make_embed(
     event: WebhookEvent,
     specifics: &CommitCommentWebhookEventPayload,
-) -> EmbedBuilder {
+) -> RockdoveResult<Option<EmbedBuilder>> {
     let repo = event
         .repository
-        .expect("commit comment events should always have a repository");
+        .ok_or_else(|| RockdoveError::MissingField {
+            event_type: event.kind.clone(),
+            field: "repository",
+        })?;
 
     let mut embed = EmbedBuilder::default();
 
@@ -24,18 +31,21 @@ pub fn make_commit_comment_embed(
             .comment
             .body
             .as_ref()
-            .expect("commit comment should always have a body")
+            .ok_or_else(|| RockdoveError::MissingField {
+                event_type: event.kind.clone(),
+                field: "comment.body",
+            })?
             .as_str(),
     );
     embed.color(COMMIT_COLOR);
 
-    embed
+    Ok(Some(embed))
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        make_embed,
+        events::make_embed,
         tests::{embed_context, TestConfig},
     };
 

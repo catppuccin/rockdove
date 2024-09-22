@@ -2,35 +2,52 @@ use octocrab::models::webhook_events::{
     payload::{MembershipWebhookEventAction, MembershipWebhookEventPayload},
     WebhookEvent,
 };
-use tracing::warn;
 
-use crate::{colors::MEMBERSHIP_COLOR, embed_builder::EmbedBuilder};
+use crate::{
+    colors::MEMBERSHIP_COLOR,
+    embed_builder::EmbedBuilder,
+    errors::{RockdoveError, RockdoveResult},
+};
 
-pub fn make_membership_embed(
+pub fn make_embed(
     event: WebhookEvent,
     specifics: &MembershipWebhookEventPayload,
-) -> Option<EmbedBuilder> {
-    let Some(team_name) = specifics.team.get("name").and_then(|v| v.as_str()) else {
-        warn!(?specifics.team, "missing team name");
-        return None;
-    };
+) -> RockdoveResult<Option<EmbedBuilder>> {
+    let team_name = specifics
+        .team
+        .get("name")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| RockdoveError::MissingField {
+            event_type: event.kind.clone(),
+            field: "team.name",
+        })?;
 
-    let Some(member_login) = specifics.member.get("login").and_then(|v| v.as_str()) else {
-        warn!(?specifics.member, "missing member login");
-        return None;
-    };
+    let member_login = specifics
+        .member
+        .get("login")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| RockdoveError::MissingField {
+            event_type: event.kind.clone(),
+            field: "member.login",
+        })?;
 
     let mut embed = EmbedBuilder::default();
 
     embed.title(&format!(
         "[{}] {} {} {} team",
-        event.organization?.login,
+        event
+            .organization
+            .ok_or_else(|| RockdoveError::MissingField {
+                event_type: event.kind.clone(),
+                field: "organization"
+            })?
+            .login,
         member_login,
         match specifics.action {
             MembershipWebhookEventAction::Added => "added to",
             MembershipWebhookEventAction::Removed => "removed from",
             _ => {
-                return None;
+                return Ok(None);
             }
         },
         team_name
@@ -41,18 +58,21 @@ pub fn make_membership_embed(
             .team
             .get("html_url")
             .and_then(|v| v.as_str())
-            .expect("team should always have an html url"),
+            .ok_or_else(|| RockdoveError::MissingField {
+                event_type: event.kind.clone(),
+                field: "team.html_url",
+            })?,
     );
 
     embed.color(MEMBERSHIP_COLOR);
 
-    Some(embed)
+    Ok(Some(embed))
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        make_embed,
+        events::make_embed,
         tests::{embed_context, TestConfig},
     };
     use std::fs;

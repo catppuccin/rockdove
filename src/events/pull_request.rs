@@ -3,15 +3,22 @@ use octocrab::models::webhook_events::{
     WebhookEvent,
 };
 
-use crate::{colors::PULL_REQUEST_COLOR, embed_builder::EmbedBuilder};
+use crate::{
+    colors::PULL_REQUEST_COLOR,
+    embed_builder::EmbedBuilder,
+    errors::{RockdoveError, RockdoveResult},
+};
 
-pub fn make_pull_request_embed(
+pub fn make_embed(
     event: WebhookEvent,
     specifics: &PullRequestWebhookEventPayload,
-) -> Option<EmbedBuilder> {
+) -> RockdoveResult<Option<EmbedBuilder>> {
     let repo = event
         .repository
-        .expect("pull request events should always have a repository");
+        .ok_or_else(|| RockdoveError::MissingField {
+            event_type: event.kind.clone(),
+            field: "repository",
+        })?;
 
     let mut embed = EmbedBuilder::default();
 
@@ -22,10 +29,14 @@ pub fn make_pull_request_embed(
         repo_name,
         match specifics.action {
             PullRequestWebhookEventAction::Assigned => {
-                let assignee = specifics
-                    .assignee
-                    .as_ref()
-                    .expect("pull request assigned events should always have an assignee");
+                let assignee =
+                    specifics
+                        .assignee
+                        .as_ref()
+                        .ok_or_else(|| RockdoveError::MissingField {
+                            event_type: event.kind.clone(),
+                            field: "assignee",
+                        })?;
                 format!("assigned to {}", assignee.login)
             }
             PullRequestWebhookEventAction::Closed => {
@@ -40,14 +51,16 @@ pub fn make_pull_request_embed(
             PullRequestWebhookEventAction::ReadyForReview => "ready for review".to_string(),
             PullRequestWebhookEventAction::Reopened => "reopened".to_string(),
             PullRequestWebhookEventAction::ReviewRequested => {
-                let reviewer = specifics
-                    .requested_reviewer
-                    .as_ref()
-                    .expect("pull request review requested events should always have a reviewer");
+                let reviewer = specifics.requested_reviewer.as_ref().ok_or_else(|| {
+                    RockdoveError::MissingField {
+                        event_type: event.kind.clone(),
+                        field: "requested_reviewer",
+                    }
+                })?;
                 format!("review requested from {}", reviewer.login)
             }
             _ => {
-                return None;
+                return Ok(None);
             }
         },
         specifics.number,
@@ -55,7 +68,10 @@ pub fn make_pull_request_embed(
             .pull_request
             .title
             .as_ref()
-            .expect("pull request should always have a title")
+            .ok_or_else(|| RockdoveError::MissingField {
+                event_type: event.kind.clone(),
+                field: "pull_request.title",
+            })?
     ));
 
     embed.url(
@@ -63,7 +79,10 @@ pub fn make_pull_request_embed(
             .pull_request
             .html_url
             .as_ref()
-            .expect("pull request should always have an html url")
+            .ok_or_else(|| RockdoveError::MissingField {
+                event_type: event.kind.clone(),
+                field: "pull_request.html_url",
+            })?
             .as_str(),
     );
 
@@ -75,13 +94,13 @@ pub fn make_pull_request_embed(
 
     embed.color(PULL_REQUEST_COLOR);
 
-    Some(embed)
+    Ok(Some(embed))
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        make_embed,
+        events::make_embed,
         tests::{embed_context, TestConfig},
     };
     use std::fs;

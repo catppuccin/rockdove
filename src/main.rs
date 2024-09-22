@@ -9,25 +9,23 @@ use axum::{
     Router,
 };
 use axum_github_webhook_extract::{GithubEvent, GithubToken};
-use events::{
-    commit_comment::make_commit_comment_embed, discussion::make_discussion_embed,
-    discussion_comment::make_discussion_comment_embed, issue_comment::make_issue_comment_embed,
-    issues::make_issues_embed, membership::make_membership_embed,
-    pull_request::make_pull_request_embed, pull_request_review::make_pull_request_review_embed,
-    release::make_release_embed, repository::make_repository_embed,
-};
-use octocrab::models::webhook_events::{WebhookEvent, WebhookEventPayload};
+use colors::COLORS;
+use embed_builder::EmbedBuilder;
+use errors::RockdoveError;
+use octocrab::models::{webhook_events::WebhookEvent, Author};
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
 use tracing::{error, info, Level};
 
 mod colors;
 mod embed_builder;
+mod errors;
 
 #[derive(serde::Deserialize)]
 struct Config {
     github_webhook_secret: String,
     discord_webhook: String,
     discord_bot_webhook: String,
+    discord_error_webhook: String,
     #[serde(default = "default_port")]
     port: u16,
 }
@@ -40,6 +38,7 @@ const fn default_port() -> u16 {
 struct DiscordHooks {
     normal: String,
     bot: String,
+    error: String,
 }
 
 #[derive(Clone)]
@@ -73,6 +72,7 @@ async fn main() -> anyhow::Result<()> {
             discord_hooks: DiscordHooks {
                 normal: config.discord_webhook,
                 bot: config.discord_bot_webhook,
+                error: config.discord_error_webhook,
             },
             github_token: GithubToken(Arc::new(config.github_webhook_secret)),
         });
@@ -130,57 +130,12 @@ async fn webhook(
         }
     };
 
-    match make_embed(event) {
+    match events::make_embed(event) {
         Ok(Some(msg)) => send_hook(&msg, hook).await,
         Ok(None) => info!("no embed created - ignoring event"),
-        Err(e) => error!(%e, "failed to make discord message"),
-    }
-}
-
-fn make_embed(event: WebhookEvent) -> anyhow::Result<Option<serde_json::Value>> {
-    let sender = event
-        .sender
-        .clone()
-        .expect("event should always have a sender");
-
-    let Some(mut embed) = (match event.specific.clone() {
-        WebhookEventPayload::Repository(specifics) => make_repository_embed(event, &specifics),
-        WebhookEventPayload::Discussion(specifics) => make_discussion_embed(event, &specifics),
-        WebhookEventPayload::DiscussionComment(specifics) => {
-            make_discussion_comment_embed(event, &specifics)
-        }
-        WebhookEventPayload::Issues(specifics) => make_issues_embed(event, &specifics),
-        WebhookEventPayload::PullRequest(specifics) => make_pull_request_embed(event, &specifics),
-        WebhookEventPayload::IssueComment(specifics) => make_issue_comment_embed(event, &specifics),
-        WebhookEventPayload::CommitComment(specifics) => {
-            Some(make_commit_comment_embed(event, &specifics))
-        }
-        WebhookEventPayload::PullRequestReview(specifics) => {
-            make_pull_request_review_embed(event, &specifics)
-        }
-        WebhookEventPayload::Release(specifics) => make_release_embed(event, &specifics),
-        WebhookEventPayload::Membership(specifics) => make_membership_embed(event, &specifics),
-        _ => {
-            info!(?event.kind, "ignoring event");
-            return Ok(None);
-        }
-    }) else {
-        return Ok(None);
-    };
-
-    embed.author(sender);
-    Ok(Some(embed.try_build()?))
-}
-
-async fn send_hook(e: &serde_json::Value, hook: &str) {
-    match reqwest::Client::new().post(hook).json(e).send().await {
-        Err(e) => error!(%e, "failed to send hook"),
-        Ok(r) => {
-            if let Err(e) = r.error_for_status() {
-                error!(%e, "hook failed");
-            } else {
-                info!("hook sent");
-            }
+        Err(e) => {
+            error!(%e, "failed to make discord message");
+            send_error_hook(&e, &app_state.discord_hooks.error).await;
         }
     }
 }
@@ -200,6 +155,55 @@ fn hook_target(event: &WebhookEvent) -> HookTarget {
     }
 
     HookTarget::Normal
+}
+
+async fn send_hook(e: &serde_json::Value, hook: &str) {
+    match reqwest::Client::new().post(hook).json(e).send().await {
+        Err(e) => error!(%e, "failed to send hook"),
+        Ok(r) => {
+            if let Err(e) = r.error_for_status() {
+                error!(%e, "hook failed");
+            } else {
+                info!("hook sent");
+            }
+        }
+    }
+}
+
+async fn send_error_hook(e: &RockdoveError, hook: &str) {
+    let mut embed = EmbedBuilder::default();
+    embed.title("Error");
+    embed.description(&e.to_string());
+    embed.color(COLORS.red);
+    embed.author(make_hammy());
+    let msg = embed
+        .try_build()
+        .expect("error embed should always be valid");
+    send_hook(&msg, hook).await;
+}
+
+fn make_hammy() -> Author {
+    serde_json::from_value(serde_json::json!({
+      "login": "sgoudham",
+      "id": 58_985_301,
+      "node_id": "MDQ6VXNlcjU4OTg1MzAx",
+      "avatar_url": "https://avatars.githubusercontent.com/u/58985301?v=4",
+      "gravatar_id": "",
+      "url": "https://api.github.com/users/sgoudham",
+      "html_url": "https://github.com/sgoudham",
+      "followers_url": "https://api.github.com/users/sgoudham/followers",
+      "following_url": "https://api.github.com/users/sgoudham/following{/other_user}",
+      "gists_url": "https://api.github.com/users/sgoudham/gists{/gist_id}",
+      "starred_url": "https://api.github.com/users/sgoudham/starred{/owner}{/repo}",
+      "subscriptions_url": "https://api.github.com/users/sgoudham/subscriptions",
+      "organizations_url": "https://api.github.com/users/sgoudham/orgs",
+      "repos_url": "https://api.github.com/users/sgoudham/repos",
+      "events_url": "https://api.github.com/users/sgoudham/events{/privacy}",
+      "received_events_url": "https://api.github.com/users/sgoudham/received_events",
+      "type": "User",
+      "site_admin": false
+    }))
+    .expect("hammy is always valid :pepe_heart:")
 }
 
 #[cfg(test)]
