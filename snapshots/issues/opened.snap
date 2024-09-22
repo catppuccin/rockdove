@@ -1,6 +1,5 @@
 ---
-source: src/main.rs
-assertion_line: 741
+source: src/events/issues.rs
 info:
   author_name_length: 8
   colour_hex: "#A6E3A1"
