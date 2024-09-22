@@ -6,19 +6,23 @@ use octocrab::models::webhook_events::{
 use crate::{
     colors::{ISSUE_COLOR, PULL_REQUEST_COLOR},
     embed_builder::EmbedBuilder,
+    errors::{RockdoveError, RockdoveResult},
 };
 
-pub fn make_issue_comment_embed(
+pub fn make_embed(
     event: WebhookEvent,
     specifics: &IssueCommentWebhookEventPayload,
-) -> Option<EmbedBuilder> {
+) -> RockdoveResult<Option<EmbedBuilder>> {
     if !matches!(specifics.action, IssueCommentWebhookEventAction::Created) {
-        return None;
+        return Ok(None);
     }
 
     let repo = event
         .repository
-        .expect("issue comment events should always have a repository");
+        .ok_or_else(|| RockdoveError::MissingField {
+            event_type: event.kind.clone(),
+            field: "repository",
+        })?;
 
     let mut embed = EmbedBuilder::default();
 
@@ -46,13 +50,13 @@ pub fn make_issue_comment_embed(
         ISSUE_COLOR
     });
 
-    Some(embed)
+    Ok(Some(embed))
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        make_embed,
+        events::make_embed,
         tests::{embed_context, TestConfig},
     };
     use std::fs;

@@ -1,5 +1,6 @@
 use octocrab::models::Author;
 use serde_json::json;
+use thiserror::Error;
 
 const MAX_TITLE_LENGTH: usize = 100;
 const MAX_DESCRIPTION_LENGTH: usize = 640;
@@ -13,6 +14,18 @@ pub struct EmbedBuilder {
     description: Option<String>,
     color: Option<u32>,
 }
+
+#[derive(Debug, Error)]
+pub enum Error {
+    #[error("missing title")]
+    Title,
+    #[error("missing url")]
+    Url,
+    #[error("missing author")]
+    Author,
+}
+
+pub type Result<T> = std::result::Result<T, Error>;
 
 impl EmbedBuilder {
     pub fn title(&mut self, title: &str) -> &Self {
@@ -41,14 +54,14 @@ impl EmbedBuilder {
         self
     }
 
-    pub fn try_build(self) -> anyhow::Result<serde_json::Value> {
+    pub fn try_build(self) -> Result<serde_json::Value> {
         Ok(json!({
             "embeds": [{
-                "title": self.title.ok_or_else(|| anyhow::anyhow!("missing title"))?,
-                "url": self.url.ok_or_else(|| anyhow::anyhow!("missing url"))?,
+                "title": self.title.ok_or(Error::Title)?,
+                "url": self.url.ok_or(Error::Url)?,
                 "description": self.description,
                 "color": self.color,
-                "author": embed_author(&self.author.ok_or_else(|| anyhow::anyhow!("missing author"))?),
+                "author": embed_author(&self.author.ok_or(Error::Author)?),
             }],
         }))
     }

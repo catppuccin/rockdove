@@ -3,18 +3,25 @@ use octocrab::models::webhook_events::{
     WebhookEvent,
 };
 
-use crate::{colors::DISCUSSION_COLOR, embed_builder::EmbedBuilder};
+use crate::{
+    colors::DISCUSSION_COLOR,
+    embed_builder::EmbedBuilder,
+    errors::{RockdoveError, RockdoveResult},
+};
 
 // TODO: Create a PR to upstream (octocrab) to add typed events so that we don't
 // need to use `.get()`, `.as_str()`, etc.
 
-pub fn make_discussion_embed(
+pub fn make_embed(
     event: WebhookEvent,
     specifics: &DiscussionWebhookEventPayload,
-) -> Option<EmbedBuilder> {
+) -> RockdoveResult<Option<EmbedBuilder>> {
     let repo = event
         .repository
-        .expect("discussion events should always have a repository");
+        .ok_or_else(|| RockdoveError::MissingField {
+            event_type: event.kind.clone(),
+            field: "repository",
+        })?;
 
     let mut embed = EmbedBuilder::default();
 
@@ -28,28 +35,43 @@ pub fn make_discussion_embed(
             DiscussionWebhookEventAction::Closed => "closed".to_string(),
             DiscussionWebhookEventAction::Reopened => "reopened".to_string(),
             _ => {
-                return None;
+                return Ok(None);
             }
         },
         specifics
             .discussion
             .get("number")
-            .expect("discussion should always have a number"),
+            .ok_or_else(|| RockdoveError::MissingField {
+                event_type: event.kind.clone(),
+                field: "discussion.number",
+            })?,
         specifics
             .discussion
             .get("title")
-            .expect("discussion should always have a title")
+            .ok_or_else(|| RockdoveError::MissingField {
+                event_type: event.kind.clone(),
+                field: "discussion.title",
+            })?
             .as_str()
-            .expect("discussion title should always be a string"),
+            .ok_or_else(|| RockdoveError::InvalidField {
+                event_type: event.kind.clone(),
+                field: "discussion.title",
+            })?,
     ));
 
     embed.url(
         specifics
             .discussion
             .get("html_url")
-            .expect("discussion should always have an html url")
+            .ok_or_else(|| RockdoveError::MissingField {
+                event_type: event.kind.clone(),
+                field: "discussion.html_url",
+            })?
             .as_str()
-            .expect("discussion html url should always be a string"),
+            .ok_or_else(|| RockdoveError::InvalidField {
+                event_type: event.kind.clone(),
+                field: "discussion.html_url",
+            })?,
     );
 
     if matches!(specifics.action, DiscussionWebhookEventAction::Created) {
@@ -57,21 +79,27 @@ pub fn make_discussion_embed(
             specifics
                 .discussion
                 .get("body")
-                .expect("discussion should always have a body")
+                .ok_or_else(|| RockdoveError::MissingField {
+                    event_type: event.kind.clone(),
+                    field: "discussion.body",
+                })?
                 .as_str()
-                .expect("discussion body should always be a string"),
+                .ok_or_else(|| RockdoveError::InvalidField {
+                    event_type: event.kind.clone(),
+                    field: "discussion.body",
+                })?,
         );
     }
 
     embed.color(DISCUSSION_COLOR);
 
-    Some(embed)
+    Ok(Some(embed))
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        make_embed,
+        events::make_embed,
         tests::{embed_context, TestConfig},
     };
     use std::fs;

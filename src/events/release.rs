@@ -3,19 +3,26 @@ use octocrab::models::webhook_events::{
     WebhookEvent,
 };
 
-use crate::{colors::RELEASE_COLOR, embed_builder::EmbedBuilder};
+use crate::{
+    colors::RELEASE_COLOR,
+    embed_builder::EmbedBuilder,
+    errors::{RockdoveError, RockdoveResult},
+};
 
-pub fn make_release_embed(
+pub fn make_embed(
     event: WebhookEvent,
     specifics: &ReleaseWebhookEventPayload,
-) -> Option<EmbedBuilder> {
+) -> RockdoveResult<Option<EmbedBuilder>> {
     if !matches!(specifics.action, ReleaseWebhookEventAction::Released) {
-        return None;
+        return Ok(None);
     }
 
     let repo = event
         .repository
-        .expect("release events should always have a repository");
+        .ok_or_else(|| RockdoveError::MissingField {
+            event_type: event.kind.clone(),
+            field: "repository",
+        })?;
 
     let mut embed = EmbedBuilder::default();
 
@@ -36,7 +43,10 @@ pub fn make_release_embed(
             .release
             .get("html_url")
             .and_then(|v| v.as_str())
-            .expect("release should always have an html url"),
+            .ok_or_else(|| RockdoveError::MissingField {
+                event_type: event.kind.clone(),
+                field: "release.html_url",
+            })?,
     );
 
     if let Some(body) = specifics.release.get("body").and_then(|v| v.as_str()) {
@@ -45,13 +55,13 @@ pub fn make_release_embed(
 
     embed.color(RELEASE_COLOR);
 
-    Some(embed)
+    Ok(Some(embed))
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        make_embed,
+        events::make_embed,
         tests::{embed_context, TestConfig},
     };
 

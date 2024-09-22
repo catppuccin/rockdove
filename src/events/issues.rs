@@ -3,15 +3,22 @@ use octocrab::models::webhook_events::{
     WebhookEvent,
 };
 
-use crate::{colors::ISSUE_COLOR, embed_builder::EmbedBuilder};
+use crate::{
+    colors::ISSUE_COLOR,
+    embed_builder::EmbedBuilder,
+    errors::{RockdoveError, RockdoveResult},
+};
 
-pub fn make_issues_embed(
+pub fn make_embed(
     event: WebhookEvent,
     specifics: &IssuesWebhookEventPayload,
-) -> Option<EmbedBuilder> {
+) -> RockdoveResult<Option<EmbedBuilder>> {
     let repo = event
         .repository
-        .expect("issue events should always have a repository");
+        .ok_or_else(|| RockdoveError::MissingField {
+            event_type: event.kind.clone(),
+            field: "repository",
+        })?;
 
     let mut embed = EmbedBuilder::default();
 
@@ -22,11 +29,12 @@ pub fn make_issues_embed(
         repo_name,
         match specifics.action {
             IssuesWebhookEventAction::Assigned => {
-                let assignee = specifics
-                    .issue
-                    .assignee
-                    .as_ref()
-                    .expect("issue assigned events should always have an assignee");
+                let assignee = specifics.issue.assignee.as_ref().ok_or_else(|| {
+                    RockdoveError::MissingField {
+                        event_type: event.kind.clone(),
+                        field: "issue.assignee",
+                    }
+                })?;
                 format!("assigned to {}", assignee.login)
             }
             IssuesWebhookEventAction::Closed => "closed".to_string(),
@@ -39,7 +47,7 @@ pub fn make_issues_embed(
             //     todo!()
             // }
             _ => {
-                return None;
+                return Ok(None);
             }
         },
         specifics.issue.number,
@@ -56,13 +64,13 @@ pub fn make_issues_embed(
 
     embed.color(ISSUE_COLOR);
 
-    Some(embed)
+    Ok(Some(embed))
 }
 
 #[cfg(test)]
 mod tests {
     use crate::{
-        make_embed,
+        events::make_embed,
         tests::{embed_context, TestConfig},
     };
     use std::fs;
