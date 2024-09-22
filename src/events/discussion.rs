@@ -5,6 +5,9 @@ use octocrab::models::webhook_events::{
 
 use crate::{embed_builder::EmbedBuilder, DISCUSSION_COLOR};
 
+// TODO: Create a PR to upstream (octocrab) to add typed events so that we don't
+// need to use `.get()`, `.as_str()`, etc.
+
 pub fn make_discussion_embed(
     event: WebhookEvent,
     specifics: &DiscussionWebhookEventPayload,
