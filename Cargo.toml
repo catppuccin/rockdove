@@ -1,8 +1,20 @@
 [package]
 name = "catppuccin-rockdove"
 version = "0.16.1"
-edition = "2021"
+description = "🤖 Soothing pastel attacks for Men In The Middle"
 repository = "https://github.com/catppuccin/rockdove"
+edition = "2021"
+keywords = [
+    "axum",
+    "catppuccin",
+    "discord",
+    "github",
+    "octocrab",
+    "rockdove",
+    "webhook",
+]
+categories = ["science"]
+license-file = "LICENSE"
 
 [[bin]]
 name = "rockdove"
@@ -12,6 +24,7 @@ path = "src/main.rs"
 all = "warn"
 pedantic = "warn"
 nursery = "warn"
+cargo = "warn"
 
 [dependencies]
 anyhow = "1.0.86"
