@@ -11,12 +11,13 @@ use octocrab::models::{
     pulls::ReviewState,
     webhook_events::{
         payload::{
-            IssueCommentWebhookEventAction, IssueCommentWebhookEventPayload,
-            IssuesWebhookEventAction, IssuesWebhookEventPayload, MembershipWebhookEventAction,
-            MembershipWebhookEventPayload, PullRequestReviewWebhookEventAction,
-            PullRequestReviewWebhookEventPayload, PullRequestWebhookEventAction,
-            PullRequestWebhookEventPayload, ReleaseWebhookEventAction, ReleaseWebhookEventPayload,
-            RepositoryWebhookEventAction, RepositoryWebhookEventPayload,
+            CommitCommentWebhookEventPayload, IssueCommentWebhookEventAction,
+            IssueCommentWebhookEventPayload, IssuesWebhookEventAction, IssuesWebhookEventPayload,
+            MembershipWebhookEventAction, MembershipWebhookEventPayload,
+            PullRequestReviewWebhookEventAction, PullRequestReviewWebhookEventPayload,
+            PullRequestWebhookEventAction, PullRequestWebhookEventPayload,
+            ReleaseWebhookEventAction, ReleaseWebhookEventPayload, RepositoryWebhookEventAction,
+            RepositoryWebhookEventPayload,
         },
         WebhookEvent, WebhookEventPayload,
     },
@@ -33,6 +34,7 @@ const PULL_REQUEST_COLOR: catppuccin::Color = COLORS.blue;
 const REPO_COLOR: catppuccin::Color = COLORS.yellow;
 const RELEASE_COLOR: catppuccin::Color = COLORS.mauve;
 const MEMBERSHIP_COLOR: catppuccin::Color = COLORS.base;
+const COMMIT_COLOR: catppuccin::Color = COLORS.teal;
 
 #[derive(serde::Deserialize)]
 struct Config {
@@ -160,6 +162,9 @@ fn make_embed(event: WebhookEvent) -> anyhow::Result<Option<serde_json::Value>> 
         WebhookEventPayload::Issues(specifics) => make_issue_embed(event, &specifics),
         WebhookEventPayload::PullRequest(specifics) => make_pull_request_embed(event, &specifics),
         WebhookEventPayload::IssueComment(specifics) => make_issue_comment_embed(event, &specifics),
+        WebhookEventPayload::CommitComment(specifics) => {
+            Some(make_commit_comment_embed(event, &specifics))
+        }
         WebhookEventPayload::PullRequestReview(specifics) => {
             make_pull_request_review_embed(event, &specifics)
         }
@@ -421,6 +426,36 @@ fn make_issue_comment_embed(
     Some(embed)
 }
 
+fn make_commit_comment_embed(
+    event: WebhookEvent,
+    specifics: &CommitCommentWebhookEventPayload,
+) -> EmbedBuilder {
+    let repo = event
+        .repository
+        .expect("commit comment events should always have a repository");
+
+    let mut embed = EmbedBuilder::default();
+
+    let repo_name = repo.full_name.unwrap_or(repo.name);
+
+    embed.title(&format!(
+        "[{}] New comment on commit {}",
+        repo_name, specifics.comment.commit_id,
+    ));
+    embed.url(specifics.comment.html_url.as_str());
+    embed.description(
+        specifics
+            .comment
+            .body
+            .as_ref()
+            .expect("commit comment should always have a body")
+            .as_str(),
+    );
+    embed.color(COMMIT_COLOR);
+
+    embed
+}
+
 fn make_pull_request_review_embed(
     event: WebhookEvent,
     specifics: &PullRequestReviewWebhookEventPayload,
@@ -617,6 +652,29 @@ mod tests {
             "description_length": &embed["embeds"][0]["description"].as_str().unwrap_or("").len(),
             "colour_hex": format!("#{:X}", embed["embeds"][0]["color"].as_u64().unwrap()),
         })
+    }
+
+    mod commit_comment {
+        use crate::{
+            make_embed,
+            tests::{embed_context, TestConfig},
+        };
+
+        #[test]
+        fn created() {
+            let payload = include_str!("../fixtures/commit_comment/created.json");
+            let TestConfig {
+                event,
+                mut settings,
+            } = super::TestConfig::new("commit_comment", payload);
+
+            let embed = make_embed(event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+
+            settings.set_info(&embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
+        }
     }
 
     mod pull_request {

@@ -1,0 +1,18 @@
+---
+source: src/main.rs
+assertion_line: 674
+info:
+  author_name_length: 8
+  colour_hex: "#94E2D5"
+  description_length: 20
+  title_length: 87
+---
+embeds:
+  - author:
+      icon_url: "https://avatars.githubusercontent.com/u/58985301?v=4"
+      name: sgoudham
+      url: "https://github.com/sgoudham"
+    color: 9757397
+    description: testing for rockdove
+    title: "[catppuccin-rfc/polybar] New comment on commit 8c687cd0fc28fa88bcfcab9932f885a829726b3d"
+    url: "https://github.com/catppuccin-rfc/polybar/commit/8c687cd0fc28fa88bcfcab9932f885a829726b3d#commitcomment-147026704"
