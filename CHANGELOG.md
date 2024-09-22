@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.16.1](https://github.com/catppuccin/rockdove/releases/tag/0.16.1) - 2024-09-22
+
+
+### 🐛 Bug Fixes
+
+- Only include discussion body on `created` event ([#24](https://github.com/catppuccin/rockdove/issues/24)) ([99b801f](https://github.com/catppuccin/rockdove/commit/99b801f))
+
+
+### 📚 Documentation
+
+- Update changelog template ([cf6dcb6](https://github.com/catppuccin/rockdove/commit/cf6dcb6))
+
+
+
 ## [v0.16.0](https://github.com/catppuccin/rockdove/releases/tag/v0.16.0) - 2024-09-22
 
 
