@@ -2,7 +2,35 @@
 
 All notable changes to this project will be documented in this file.
 
-## [0.16.1](https://github.com/catppuccin/rockdove/releases/tag/0.16.1) - 2024-09-22
+## [v0.17.1](https://github.com/catppuccin/rockdove/releases/tag/v0.17.1) - 2024-09-22
+
+
+### 🐛 Bug Fixes
+
+- Oopsie woopsie ([4e41ba2](https://github.com/catppuccin/rockdove/commit/4e41ba2))
+
+
+
+## [v0.17.0](https://github.com/catppuccin/rockdove/releases/tag/v0.17.0) - 2024-09-22
+
+
+### 🚀 Features
+
+- Add error hook ([#27](https://github.com/catppuccin/rockdove/issues/27)) ([98070a5](https://github.com/catppuccin/rockdove/commit/98070a5))
+
+
+### 🧪 Testing
+
+- Add `yare` for parameterised testing ([#25](https://github.com/catppuccin/rockdove/issues/25)) ([5eed400](https://github.com/catppuccin/rockdove/commit/5eed400))
+
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version number ([91515f2](https://github.com/catppuccin/rockdove/commit/91515f2))
+
+
+
+## [v0.16.1](https://github.com/catppuccin/rockdove/releases/tag/v0.16.1) - 2024-09-22
 
 
 ### 🐛 Bug Fixes
