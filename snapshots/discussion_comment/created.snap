@@ -1,6 +1,5 @@
 ---
 source: src/events/discussion_comment.rs
-assertion_line: 88
 info:
   author_name_length: 8
   colour_hex: "#FAB387"

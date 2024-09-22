@@ -239,4 +239,28 @@ mod tests {
             "colour_hex": format!("#{:X}", embed["embeds"][0]["color"].as_u64().unwrap()),
         })
     }
+
+    #[macro_export]
+    macro_rules! snapshot_test {
+        ($event:literal, $event_type:expr) => {
+            let filename = format!(
+                "{}/fixtures/{}/{}.json",
+                env!("CARGO_MANIFEST_DIR"),
+                $event,
+                $event_type
+            );
+            let payload = std::fs::read_to_string(&filename).expect("fixture exists");
+            let $crate::tests::TestConfig {
+                webhook_event,
+                mut settings,
+            } = $crate::tests::TestConfig::new($event, &payload);
+
+            let embed = $crate::events::make_embed(webhook_event)
+                .expect("make_embed should succeed")
+                .expect("event fixture can be turned into an embed");
+
+            settings.set_info(&$crate::tests::embed_context(&embed));
+            settings.bind(|| insta::assert_yaml_snapshot!(embed));
+        };
+    }
 }

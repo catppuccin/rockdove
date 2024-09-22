@@ -98,11 +98,8 @@ pub fn make_embed(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        events::make_embed,
-        tests::{embed_context, TestConfig},
-    };
-    use std::fs;
+    use crate::snapshot_test;
+
     use yare::parameterized;
 
     #[parameterized(
@@ -111,20 +108,6 @@ mod tests {
         reopened = { "reopened" }
       )]
     fn snapshot(event_type: &str) {
-        let event = "discussion";
-        let root = env!("CARGO_MANIFEST_DIR");
-        let filename = format!("{root}/fixtures/{event}/{event_type}.json");
-        let payload = fs::read_to_string(&filename).expect("fixture exists");
-        let TestConfig {
-            webhook_event,
-            mut settings,
-        } = TestConfig::new(event, &payload);
-
-        let embed = make_embed(webhook_event)
-            .expect("make_embed should succeed")
-            .expect("event fixture can be turned into an embed");
-
-        settings.set_info(&embed_context(&embed));
-        settings.bind(|| insta::assert_yaml_snapshot!(embed));
+        snapshot_test!("discussion", event_type);
     }
 }
