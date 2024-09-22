@@ -228,7 +228,10 @@ mod tests {
             settings.set_omit_expression(true);
             settings.set_snapshot_path(format!("../../snapshots/{event_type}"));
             settings.set_prepend_module_to_snapshot(false);
-            Self { webhook_event: event, settings }
+            Self {
+                webhook_event: event,
+                settings,
+            }
         }
     }
 
