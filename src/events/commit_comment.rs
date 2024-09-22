@@ -43,7 +43,7 @@ mod tests {
     fn created() {
         let payload = include_str!("../../fixtures/commit_comment/created.json");
         let TestConfig {
-            event,
+            webhook_event: event,
             mut settings,
         } = TestConfig::new("commit_comment", payload);
 
