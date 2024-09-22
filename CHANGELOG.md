@@ -2,12 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.0](https://github.com/catppuccin/rockdove/releases/tag/1.0.0) - 2024-09-22
+## [v1.0.0](https://github.com/catppuccin/rockdove/releases/tag/v1.0.0) - 2024-09-22
 
 
 ### 🚀 Features
 
-- Publish v1.0.0 ([ab4c95b](https://github.com/catppuccin/rockdove/commit/ab4c95b))
+- Publish v1.0.0 ([dcbb2c9](https://github.com/catppuccin/rockdove/commit/dcbb2c9))
 
   > "fuck the rust ecosystem we do what we want" - @backwardspy
 
@@ -27,15 +27,6 @@ All notable changes to this project will be documented in this file.
 ### 🧪 Testing
 
 - Use declarative macro to reduce duplication ([#28](https://github.com/catppuccin/rockdove/issues/28)) ([567fdc2](https://github.com/catppuccin/rockdove/commit/567fdc2))
-
-
-
-## [v0.17.1](https://github.com/catppuccin/rockdove/releases/tag/v0.17.1) - 2024-09-22
-
-
-### 🐛 Bug Fixes
-
-- Oopsie woopsie ([4e41ba2](https://github.com/catppuccin/rockdove/commit/4e41ba2))
 
 
 
