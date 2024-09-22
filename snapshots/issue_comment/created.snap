@@ -1,5 +1,5 @@
 ---
-source: src/main.rs
+source: src/events/issue_comment.rs
 info:
   author_name_length: 8
   colour_hex: "#A6E3A1"
