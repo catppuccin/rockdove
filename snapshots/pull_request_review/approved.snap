@@ -1,5 +1,5 @@
 ---
-source: src/main.rs
+source: src/events/pull_request_review.rs
 info:
   author_name_length: 8
   colour_hex: "#89B4FA"
