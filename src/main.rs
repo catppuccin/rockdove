@@ -216,7 +216,7 @@ mod tests {
     use serde_json::json;
 
     pub struct TestConfig {
-        pub event: WebhookEvent,
+        pub webhook_event: WebhookEvent,
         pub settings: insta::Settings,
     }
 
@@ -228,7 +228,10 @@ mod tests {
             settings.set_omit_expression(true);
             settings.set_snapshot_path(format!("../../snapshots/{event_type}"));
             settings.set_prepend_module_to_snapshot(false);
-            Self { event, settings }
+            Self {
+                webhook_event: event,
+                settings,
+            }
         }
     }
 

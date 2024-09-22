@@ -53,3 +53,4 @@ pr-run-mode = "plan"
 
 [dev-dependencies]
 insta = { version = "1.40.0", features = ["yaml"] }
+yare = "3.0.0"

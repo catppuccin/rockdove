@@ -55,32 +55,24 @@ mod tests {
         make_embed,
         tests::{embed_context, TestConfig},
     };
+    use std::fs;
+    use yare::parameterized;
 
-    #[test]
-    fn added() {
-        let payload = include_str!("../../fixtures/membership/added.json");
+    #[parameterized(
+        added = { "added" },
+        removed = { "removed" },
+      )]
+    fn snapshot(event_type: &str) {
+        let event = "membership";
+        let root = env!("CARGO_MANIFEST_DIR");
+        let filename = format!("{root}/fixtures/{event}/{event_type}.json");
+        let payload = fs::read_to_string(&filename).expect("fixture exists");
         let TestConfig {
-            event,
+            webhook_event,
             mut settings,
-        } = TestConfig::new("membership", payload);
+        } = TestConfig::new(event, &payload);
 
-        let embed = make_embed(event)
-            .expect("make_embed should succeed")
-            .expect("event fixture can be turned into an embed");
-
-        settings.set_info(&embed_context(&embed));
-        settings.bind(|| insta::assert_yaml_snapshot!(embed));
-    }
-
-    #[test]
-    fn removed() {
-        let payload = include_str!("../../fixtures/membership/removed.json");
-        let TestConfig {
-            event,
-            mut settings,
-        } = TestConfig::new("membership", payload);
-
-        let embed = make_embed(event)
+        let embed = make_embed(webhook_event)
             .expect("make_embed should succeed")
             .expect("event fixture can be turned into an embed");
 

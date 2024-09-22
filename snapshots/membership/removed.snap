@@ -1,5 +1,5 @@
 ---
-source: src/main.rs
+source: src/events/membership.rs
 info:
   author_name_length: 8
   colour_hex: "#1E1E2E"

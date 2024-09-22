@@ -59,7 +59,7 @@ mod tests {
     fn released() {
         let payload = include_str!("../../fixtures/release/released.json");
         let TestConfig {
-            event,
+            webhook_event: event,
             mut settings,
         } = TestConfig::new("release", payload);
 

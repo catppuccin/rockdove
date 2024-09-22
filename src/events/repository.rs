@@ -89,48 +89,25 @@ mod tests {
         make_embed,
         tests::{embed_context, TestConfig},
     };
+    use std::fs;
+    use yare::parameterized;
 
-    #[test]
-    fn created() {
-        let payload = include_str!("../../fixtures/repository/created.json");
+    #[parameterized(
+      created = { "created" },
+      renamed = { "renamed" },
+      transferred = { "transferred" },
+    )]
+    fn snapshot(event_type: &str) {
+        let event = "repository";
+        let root = env!("CARGO_MANIFEST_DIR");
+        let filename = format!("{root}/fixtures/{event}/{event_type}.json");
+        let payload = fs::read_to_string(&filename).expect("fixture exists");
         let TestConfig {
-            event,
+            webhook_event,
             mut settings,
-        } = TestConfig::new("repository", payload);
+        } = TestConfig::new(event, &payload);
 
-        let embed = make_embed(event)
-            .expect("make_embed should succeed")
-            .expect("event fixture can be turned into an embed");
-
-        settings.set_info(&embed_context(&embed));
-        settings.bind(|| insta::assert_yaml_snapshot!(embed));
-    }
-
-    #[test]
-    fn renamed() {
-        let payload = include_str!("../../fixtures/repository/renamed.json");
-        let TestConfig {
-            event,
-            mut settings,
-        } = TestConfig::new("repository", payload);
-
-        let embed = make_embed(event)
-            .expect("make_embed should succeed")
-            .expect("event fixture can be turned into an embed");
-
-        settings.set_info(&embed_context(&embed));
-        settings.bind(|| insta::assert_yaml_snapshot!(embed));
-    }
-
-    #[test]
-    fn transferred() {
-        let payload = include_str!("../../fixtures/repository/transferred.json");
-        let TestConfig {
-            event,
-            mut settings,
-        } = TestConfig::new("repository", payload);
-
-        let embed = make_embed(event)
+        let embed = make_embed(webhook_event)
             .expect("make_embed should succeed")
             .expect("event fixture can be turned into an embed");
 

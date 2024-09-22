@@ -65,48 +65,25 @@ mod tests {
         make_embed,
         tests::{embed_context, TestConfig},
     };
+    use std::fs;
+    use yare::parameterized;
 
-    #[test]
-    fn approved() {
-        let payload = include_str!("../../fixtures/pull_request_review/approved.json");
+    #[parameterized(
+        approved = { "approved" },
+        changes_requested = { "changes_requested" },
+        commented = { "commented" }
+      )]
+    fn snapshot(event_type: &str) {
+        let event = "pull_request_review";
+        let root = env!("CARGO_MANIFEST_DIR");
+        let filename = format!("{root}/fixtures/{event}/{event_type}.json");
+        let payload = fs::read_to_string(&filename).expect("fixture exists");
         let TestConfig {
-            event,
+            webhook_event,
             mut settings,
-        } = TestConfig::new("pull_request_review", payload);
+        } = TestConfig::new(event, &payload);
 
-        let embed = make_embed(event)
-            .expect("make_embed should succeed")
-            .expect("event fixture can be turned into an embed");
-
-        settings.set_info(&embed_context(&embed));
-        settings.bind(|| insta::assert_yaml_snapshot!(embed));
-    }
-
-    #[test]
-    fn changes_requested() {
-        let payload = include_str!("../../fixtures/pull_request_review/changes_requested.json");
-        let TestConfig {
-            event,
-            mut settings,
-        } = TestConfig::new("pull_request_review", payload);
-
-        let embed = make_embed(event)
-            .expect("make_embed should succeed")
-            .expect("event fixture can be turned into an embed");
-
-        settings.set_info(&embed_context(&embed));
-        settings.bind(|| insta::assert_yaml_snapshot!(embed));
-    }
-
-    #[test]
-    fn commented() {
-        let payload = include_str!("../../fixtures/pull_request_review/commented.json");
-        let TestConfig {
-            event,
-            mut settings,
-        } = TestConfig::new("pull_request_review", payload);
-
-        let embed = make_embed(event)
+        let embed = make_embed(webhook_event)
             .expect("make_embed should succeed")
             .expect("event fixture can be turned into an embed");
 

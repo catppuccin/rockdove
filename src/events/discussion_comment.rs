@@ -76,7 +76,7 @@ mod tests {
     fn created() {
         let payload = include_str!("../../fixtures/discussion_comment/created.json");
         let TestConfig {
-            event,
+            webhook_event: event,
             mut settings,
         } = TestConfig::new("discussion_comment", payload);
 
