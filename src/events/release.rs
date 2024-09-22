@@ -49,4 +49,25 @@ pub fn make_release_embed(
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use crate::{
+        make_embed,
+        tests::{embed_context, TestConfig},
+    };
+
+    #[test]
+    fn released() {
+        let payload = include_str!("../../fixtures/release/released.json");
+        let TestConfig {
+            event,
+            mut settings,
+        } = TestConfig::new("release", payload);
+
+        let embed = make_embed(event)
+            .expect("make_embed should succeed")
+            .expect("event fixture can be turned into an embed");
+
+        settings.set_info(&embed_context(&embed));
+        settings.bind(|| insta::assert_yaml_snapshot!(embed));
+    }
+}
