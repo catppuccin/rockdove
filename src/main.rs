@@ -10,10 +10,11 @@ use axum::{
 };
 use axum_github_webhook_extract::{GithubEvent, GithubToken};
 use events::{
-    commit_comment::make_commit_comment_embed, issue_comment::make_issue_comment_embed,
-    issues::make_issues_embed, membership::make_membership_embed,
-    pull_request::make_pull_request_embed, pull_request_review::make_pull_request_review_embed,
-    release::make_release_embed, repository::make_repository_embed,
+    commit_comment::make_commit_comment_embed, discussion::make_discussion_embed,
+    issue_comment::make_issue_comment_embed, issues::make_issues_embed,
+    membership::make_membership_embed, pull_request::make_pull_request_embed,
+    pull_request_review::make_pull_request_review_embed, release::make_release_embed,
+    repository::make_repository_embed,
 };
 use octocrab::models::webhook_events::{WebhookEvent, WebhookEventPayload};
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
@@ -23,6 +24,7 @@ mod embed_builder;
 
 const COLORS: catppuccin::FlavorColors = catppuccin::PALETTE.mocha.colors;
 pub const ISSUE_COLOR: catppuccin::Color = COLORS.green;
+pub const DISCUSSION_COLOR: catppuccin::Color = COLORS.peach;
 pub const PULL_REQUEST_COLOR: catppuccin::Color = COLORS.blue;
 pub const REPO_COLOR: catppuccin::Color = COLORS.yellow;
 pub const RELEASE_COLOR: catppuccin::Color = COLORS.mauve;
@@ -152,6 +154,7 @@ fn make_embed(event: WebhookEvent) -> anyhow::Result<Option<serde_json::Value>> 
 
     let Some(mut embed) = (match event.specific.clone() {
         WebhookEventPayload::Repository(specifics) => make_repository_embed(event, &specifics),
+        WebhookEventPayload::Discussion(specifics) => make_discussion_embed(event, &specifics),
         WebhookEventPayload::Issues(specifics) => make_issues_embed(event, &specifics),
         WebhookEventPayload::PullRequest(specifics) => make_pull_request_embed(event, &specifics),
         WebhookEventPayload::IssueComment(specifics) => make_issue_comment_embed(event, &specifics),
