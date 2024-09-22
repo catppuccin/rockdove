@@ -52,14 +52,16 @@ pub fn make_discussion_embed(
             .expect("discussion html url should always be a string"),
     );
 
-    embed.description(
-        specifics
-            .discussion
-            .get("body")
-            .expect("discussion should always have a body")
-            .as_str()
-            .expect("discussion body should always be a string"),
-    );
+    if matches!(specifics.action, DiscussionWebhookEventAction::Created) {
+        embed.description(
+            specifics
+                .discussion
+                .get("body")
+                .expect("discussion should always have a body")
+                .as_str()
+                .expect("discussion body should always be a string"),
+        );
+    }
 
     embed.color(DISCUSSION_COLOR);
 
