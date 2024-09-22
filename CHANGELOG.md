@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0](https://github.com/catppuccin/rockdove/releases/tag/1.0.0) - 2024-09-22
+
+
+### 🚀 Features
+
+- Publish v1.0.0 ([ab4c95b](https://github.com/catppuccin/rockdove/commit/ab4c95b))
+
+  > "fuck the rust ecosystem we do what we want" - @backwardspy
+
+
+
+### 🐛 Bug Fixes
+
+- Oopsie woopsie ([7fe23ab](https://github.com/catppuccin/rockdove/commit/7fe23ab))
+
+
+### 📚 Documentation
+
+- (README): Mention `DISCORD_ERROR_WEBHOOK` ([#29](https://github.com/catppuccin/rockdove/issues/29)) ([d9f86dd](https://github.com/catppuccin/rockdove/commit/d9f86dd))
+- Update changelog ([fc528c0](https://github.com/catppuccin/rockdove/commit/fc528c0))
+
+
+### 🧪 Testing
+
+- Use declarative macro to reduce duplication ([#28](https://github.com/catppuccin/rockdove/issues/28)) ([567fdc2](https://github.com/catppuccin/rockdove/commit/567fdc2))
+
+
+
 ## [v0.17.1](https://github.com/catppuccin/rockdove/releases/tag/v0.17.1) - 2024-09-22
 
 
