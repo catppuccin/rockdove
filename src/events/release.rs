@@ -3,7 +3,7 @@ use octocrab::models::webhook_events::{
     WebhookEvent,
 };
 
-use crate::{embed_builder::EmbedBuilder, RELEASE_COLOR};
+use crate::{colors::RELEASE_COLOR, embed_builder::EmbedBuilder};
 
 pub fn make_release_embed(
     event: WebhookEvent,

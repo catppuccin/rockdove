@@ -1,6 +1,6 @@
 use octocrab::models::webhook_events::{payload::CommitCommentWebhookEventPayload, WebhookEvent};
 
-use crate::{embed_builder::EmbedBuilder, COMMIT_COLOR};
+use crate::{colors::COMMIT_COLOR, embed_builder::EmbedBuilder};
 
 pub fn make_commit_comment_embed(
     event: WebhookEvent,
