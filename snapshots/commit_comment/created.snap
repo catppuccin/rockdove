@@ -1,6 +1,5 @@
 ---
-source: src/main.rs
-assertion_line: 674
+source: src/events/commit_comment.rs
 info:
   author_name_length: 8
   colour_hex: "#94E2D5"

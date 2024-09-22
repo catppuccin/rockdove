@@ -95,24 +95,10 @@ pub fn make_embed(
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        events::make_embed,
-        tests::{embed_context, TestConfig},
-    };
+    use crate::snapshot_test;
 
     #[test]
     fn created() {
-        let payload = include_str!("../../fixtures/discussion_comment/created.json");
-        let TestConfig {
-            webhook_event: event,
-            mut settings,
-        } = TestConfig::new("discussion_comment", payload);
-
-        let embed = make_embed(event)
-            .expect("make_embed should succeed")
-            .expect("event fixture can be turned into an embed");
-
-        settings.set_info(&embed_context(&embed));
-        settings.bind(|| insta::assert_yaml_snapshot!(embed));
+        snapshot_test!("discussion_comment", "created");
     }
 }

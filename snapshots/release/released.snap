@@ -1,6 +1,5 @@
 ---
 source: src/events/release.rs
-assertion_line: 71
 info:
   author_name_length: 8
   colour_hex: "#CBA6F7"
