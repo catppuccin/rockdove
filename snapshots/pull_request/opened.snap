@@ -1,6 +1,5 @@
 ---
-source: src/main.rs
-assertion_line: 641
+source: src/events/pull_request.rs
 info:
   author_name_length: 8
   colour_hex: "#89B4FA"
