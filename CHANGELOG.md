@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.16.0] - 2024-09-22
+
+### 🚀 Features
+
+- Support `commit_comment` event (#19)
+- Support `discussion` event (#20)
+- Support `discussion_comment` event (#23)
+
+### 🚜 Refactor
+
+- Split into separate files (#21)
+
+### 🧪 Testing
+
+- Add release fixture (#22)
+
 ## [0.15.2] - 2024-09-21
 
 ### 🚜 Refactor
