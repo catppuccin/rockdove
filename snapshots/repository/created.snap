@@ -1,5 +1,5 @@
 ---
-source: src/main.rs
+source: src/events/repository.rs
 info:
   author_name_length: 8
   colour_hex: "#F9E2AF"
