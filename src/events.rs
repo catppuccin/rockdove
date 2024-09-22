@@ -1,5 +1,6 @@
 pub mod commit_comment;
 pub mod discussion;
+pub mod discussion_comment;
 pub mod issue_comment;
 pub mod issues;
 pub mod membership;

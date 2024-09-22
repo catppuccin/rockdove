@@ -1,0 +1,18 @@
+---
+source: src/events/discussion_comment.rs
+assertion_line: 88
+info:
+  author_name_length: 8
+  colour_hex: "#FAB387"
+  description_length: 640
+  title_length: 68
+---
+embeds:
+  - author:
+      icon_url: "https://avatars.githubusercontent.com/u/58985301?v=4"
+      name: sgoudham
+      url: "https://github.com/sgoudham"
+    color: 16429959
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut viverra laoreet sem quis sodales. Maecenas a dui at odio dapibus faucibus. Vivamus et mi elementum, dapibus diam in, eleifend nisl. Phasellus et congue nibh, sit amet fringilla est. Proin varius congue quam eu mattis. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Suspendisse potenti. Morbi scelerisque sapien justo, eu varius augue interdum et. Nunc elementum leo orci, quis fermentum urna semper nec.\r\n\r\nAenean porttitor semper lorem vel porttitor. Donec a sem velit. Mauris imperdiet enim nec convallis placerat. Aenean non urna..."
+    title: "[catppuccin-rfc/polybar] New comment on discussion #19: another test"
+    url: "https://github.com/catppuccin-rfc/polybar/discussions/19#discussioncomment-10715667"
