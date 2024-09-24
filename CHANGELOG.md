@@ -2,13 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.0.1](https://github.com/catppuccin/rockdove/releases/tag/v1.0.1) - 2024-09-24
 
-## [Unreleased]
+
+### 🐛 Bug Fixes
+
+- Support teams in PR review requests ([#30](https://github.com/catppuccin/rockdove/issues/30)) ([d19d759](https://github.com/catppuccin/rockdove/commit/d19d759))
+
+
+### 📚 Documentation
+
+- Update changelog ([35b3ff2](https://github.com/catppuccin/rockdove/commit/35b3ff2))
 
 
 ### ⚙️ Miscellaneous Tasks
 
-- Bump version number ([10dc5ac](https://github.com/catppuccin/rockdove/commit/10dc5ac))
+- Bump version number ([b8b6948](https://github.com/catppuccin/rockdove/commit/b8b6948))
 - Update changelog ([3de647b](https://github.com/catppuccin/rockdove/commit/3de647b))
 
 
