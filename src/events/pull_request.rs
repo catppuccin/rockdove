@@ -51,13 +51,28 @@ pub fn make_embed(
             PullRequestWebhookEventAction::ReadyForReview => "ready for review".to_string(),
             PullRequestWebhookEventAction::Reopened => "reopened".to_string(),
             PullRequestWebhookEventAction::ReviewRequested => {
-                let reviewer = specifics.requested_reviewer.as_ref().ok_or_else(|| {
-                    RockdoveError::MissingField {
+                let mut reviewer_names = vec![];
+                reviewer_names.extend(
+                    specifics
+                        .requested_reviewer
+                        .as_ref()
+                        .map(|user| user.login.as_str()),
+                );
+                reviewer_names.extend(
+                    specifics
+                        .requested_team
+                        .as_ref()
+                        .map(|team| team.name.as_str()),
+                );
+
+                if reviewer_names.is_empty() {
+                    return Err(RockdoveError::MissingField {
                         event_type: event.kind.clone(),
-                        field: "requested_reviewer",
-                    }
-                })?;
-                format!("review requested from {}", reviewer.login)
+                        field: "(requested_reviewer|requested_team)",
+                    });
+                }
+
+                format!("review requested from {}", reviewer_names.join(", "))
             }
             _ => {
                 return Ok(None);
@@ -103,11 +118,12 @@ mod tests {
     use yare::parameterized;
 
     #[parameterized(
-              opened = { "opened" },
-              opened_by_bot = { "opened_by_bot" },
-              closed = { "closed" },
-              reopened = { "reopened" }
-            )]
+        opened = { "opened" },
+        opened_by_bot = { "opened_by_bot" },
+        closed = { "closed" },
+        reopened = { "reopened" },
+        multiple_reviewers = { "multiple_reviewers" }
+    )]
     fn snapshot(event_type: &str) {
         snapshot_test!("pull_request", event_type);
     }

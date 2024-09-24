@@ -1,0 +1,17 @@
+---
+source: src/events/pull_request.rs
+info:
+  author_name_length: 16
+  colour_hex: "#89B4FA"
+  description_length: 0
+  title_length: 100
+---
+embeds:
+  - author:
+      icon_url: "https://avatars.githubusercontent.com/u/36050256?v=4"
+      name: Thomas-Philippot
+      url: "https://github.com/Thomas-Philippot"
+    color: 9024762
+    description: ~
+    title: "[catppuccin/userstyles] Pull request review requested from userstyles-staff: #1337 feat(gitlab): ..."
+    url: "https://github.com/catppuccin/userstyles/pull/1337"

@@ -80,8 +80,8 @@ mod tests {
     #[parameterized(
         approved = { "approved" },
         changes_requested = { "changes_requested" },
-        commented = { "commented" }
-      )]
+        commented = { "commented" },
+    )]
     fn snapshot(event_type: &str) {
         snapshot_test!("pull_request_review", event_type);
     }
