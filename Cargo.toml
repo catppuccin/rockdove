@@ -1,6 +1,6 @@
 [package]
 name = "catppuccin-rockdove"
-version = "1.0.0"
+version = "1.0.1"
 description = "🤖 Soothing pastel attacks for Men In The Middle"
 repository = "https://github.com/catppuccin/rockdove"
 edition = "2021"
@@ -36,9 +36,9 @@ octocrab = { git = "https://github.com/backwardspy/octocrab", branch = "feat/web
 reqwest = { version = "0.12.4", features = ["json"] }
 serde = "1.0.203"
 serde_json = "1.0.117"
-thiserror = "1.0.63"
+thiserror = "1.0.64"
 tokio = { version = "1.38.0", features = ["full"] }
-tower-http = { version = "0.6.0", features = ["trace"] }
+tower-http = { version = "0.6.1", features = ["trace"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 
