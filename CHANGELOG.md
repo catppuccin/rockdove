@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.1.0](https://github.com/catppuccin/rockdove/releases/tag/v1.1.0) - 2024-09-24
+
+
+### 🚀 Features
+
+- Ignore requested reviews on userstyles ([#31](https://github.com/catppuccin/rockdove/issues/31)) ([f49a23a](https://github.com/catppuccin/rockdove/commit/f49a23a))
+
+
+### 📚 Documentation
+
+- Update changelog fr fr no cap ([dddbc8c](https://github.com/catppuccin/rockdove/commit/dddbc8c))
+
+
+
 ## [v1.0.1](https://github.com/catppuccin/rockdove/releases/tag/v1.0.1) - 2024-09-24
 
 
