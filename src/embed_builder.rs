@@ -2,7 +2,7 @@ use octocrab::models::Author;
 use serde_json::json;
 use thiserror::Error;
 
-const MAX_TITLE_LENGTH: usize = 100;
+const MAX_TITLE_LENGTH: usize = 256;
 const MAX_DESCRIPTION_LENGTH: usize = 640;
 const MAX_AUTHOR_NAME_LENGTH: usize = 256;
 
