@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+
+## [Unreleased]
+
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version number ([10dc5ac](https://github.com/catppuccin/rockdove/commit/10dc5ac))
+- Update changelog ([3de647b](https://github.com/catppuccin/rockdove/commit/3de647b))
+
+
+
 ## [v1.0.0](https://github.com/catppuccin/rockdove/releases/tag/v1.0.0) - 2024-09-22
 
 
