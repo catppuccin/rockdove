@@ -1,6 +1,6 @@
 [package]
 name = "catppuccin-rockdove"
-version = "1.1.0"
+version = "1.2.0"
 description = "🤖 Soothing pastel attacks for Men In The Middle"
 repository = "https://github.com/catppuccin/rockdove"
 edition = "2021"

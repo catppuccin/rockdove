@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.2.0](https://github.com/catppuccin/rockdove/releases/tag/v1.2.0) - 2024-10-02
+
+
+### 🚀 Features
+
+- Add `pull_request_review_comment` event ([#32](https://github.com/catppuccin/rockdove/issues/32)) ([7062f4c](https://github.com/catppuccin/rockdove/commit/7062f4c))
+
+
+
 ## [v1.1.0](https://github.com/catppuccin/rockdove/releases/tag/v1.1.0) - 2024-09-24
 
 
@@ -13,6 +22,11 @@ All notable changes to this project will be documented in this file.
 ### 📚 Documentation
 
 - Update changelog fr fr no cap ([dddbc8c](https://github.com/catppuccin/rockdove/commit/dddbc8c))
+
+
+### ⚙️ Miscellaneous Tasks
+
+- Bump version number ([4ec5a09](https://github.com/catppuccin/rockdove/commit/4ec5a09))
 
 
 
