@@ -14,6 +14,7 @@ mod issues;
 mod membership;
 mod pull_request;
 mod pull_request_review;
+mod pull_request_review_comment;
 mod release;
 mod repository;
 
@@ -52,6 +53,9 @@ fn begin_embed(event: WebhookEvent) -> RockdoveResult<Option<EmbedBuilder>> {
         }
         WebhookEventPayload::PullRequestReview(specifics) => {
             pull_request_review::make_embed(event, &specifics)
+        }
+        WebhookEventPayload::PullRequestReviewComment(specifics) => {
+            pull_request_review_comment::make_embed(event, &specifics)
         }
         WebhookEventPayload::Release(specifics) => release::make_embed(event, &specifics),
         WebhookEventPayload::Membership(specifics) => membership::make_embed(event, &specifics),

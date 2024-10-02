@@ -1,0 +1,17 @@
+---
+source: src/events/pull_request_review_comment.rs
+info:
+  author_name_length: 8
+  colour_hex: "#89B4FA"
+  description_length: 70
+  title_length: 106
+---
+embeds:
+  - author:
+      icon_url: "https://avatars.githubusercontent.com/u/47499684?v=4"
+      name: uncenter
+      url: "https://github.com/uncenter"
+    color: 9024762
+    description: "More clarity about what you are clicking on, why it would install it. "
+    title: "[catppuccin/discord] New review comment on pull request #325: docs(README): update and improve usage steps"
+    url: "https://github.com/catppuccin/discord/pull/325#discussion_r1785288051"
