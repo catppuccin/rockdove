@@ -56,7 +56,7 @@ fn begin_embed(event: WebhookEvent) -> RockdoveResult<Option<EmbedBuilder>> {
         }
         WebhookEventPayload::PullRequestReviewComment(specifics) => {
             pull_request_review_comment::make_embed(event, &specifics)
-        },
+        }
         WebhookEventPayload::Release(specifics) => release::make_embed(event, &specifics),
         WebhookEventPayload::Membership(specifics) => membership::make_embed(event, &specifics),
         _ => Ok(None),

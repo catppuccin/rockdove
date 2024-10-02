@@ -62,4 +62,3 @@ mod tests {
         snapshot_test!("pull_request_review_comment", "created");
     }
 }
-
