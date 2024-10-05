@@ -7,7 +7,9 @@ All notable changes to this project will be documented in this file.
 
 ### ⚙️ Miscellaneous Tasks
 
-- Switch back to upstream octocrab ([cfe3a5e](https://github.com/catppuccin/rockdove/commit/cfe3a5e))
+- Upgrade cargo-dist ([#34](https://github.com/catppuccin/rockdove/issues/34)) ([4264cae](https://github.com/catppuccin/rockdove/commit/4264cae))
+- Bump version number ([3a5ce7c](https://github.com/catppuccin/rockdove/commit/3a5ce7c))
+- Switch back to upstream octocrab ([#33](https://github.com/catppuccin/rockdove/issues/33)) ([6a9fc85](https://github.com/catppuccin/rockdove/commit/6a9fc85))
 
 
 
