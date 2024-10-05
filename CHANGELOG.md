@@ -7,6 +7,8 @@ All notable changes to this project will be documented in this file.
 
 ### ⚙️ Miscellaneous Tasks
 
+- Update build to use ubuntu 22.04 runners ([#35](https://github.com/catppuccin/rockdove/issues/35)) ([8a9333c](https://github.com/catppuccin/rockdove/commit/8a9333c))
+- Retry version bump ([8bd69de](https://github.com/catppuccin/rockdove/commit/8bd69de))
 - Upgrade cargo-dist ([#34](https://github.com/catppuccin/rockdove/issues/34)) ([4264cae](https://github.com/catppuccin/rockdove/commit/4264cae))
 - Bump version number ([3a5ce7c](https://github.com/catppuccin/rockdove/commit/3a5ce7c))
 - Switch back to upstream octocrab ([#33](https://github.com/catppuccin/rockdove/issues/33)) ([6a9fc85](https://github.com/catppuccin/rockdove/commit/6a9fc85))
