@@ -42,6 +42,10 @@ tower-http = { version = "0.6.1", features = ["trace"] }
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 
+[dev-dependencies]
+insta = { version = "1.40.0", features = ["yaml"] }
+yare = "3.0.0"
+
 # insta recommends to do this so that it's more "fun" to use, among other things
 [profile.dev.package]
 insta.opt-level = 3
@@ -65,6 +69,6 @@ targets = ["x86_64-unknown-linux-gnu"]
 # Which actions to run on pull requests
 pr-run-mode = "plan"
 
-[dev-dependencies]
-insta = { version = "1.40.0", features = ["yaml"] }
-yare = "3.0.0"
+[workspace.metadata.dist.github-custom-runners]
+global = "ubuntu-22.04"
+x86_64-unknown-linux-gnu = "ubuntu-22.04"
