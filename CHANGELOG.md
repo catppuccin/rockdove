@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v1.2.1](https://github.com/catppuccin/rockdove/releases/tag/v1.2.1) - 2024-10-05
+
+
+### ⚙️ Miscellaneous Tasks
+
+- Switch back to upstream octocrab ([cfe3a5e](https://github.com/catppuccin/rockdove/commit/cfe3a5e))
+
+
+
 ## [v1.2.0](https://github.com/catppuccin/rockdove/releases/tag/v1.2.0) - 2024-10-02
 
 
