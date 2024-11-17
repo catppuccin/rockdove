@@ -156,7 +156,7 @@ fn hook_target(event: &WebhookEvent) -> HookTarget {
     }
 
     if let Some(repository) = &event.repository {
-        // userstyles is a monorepo with a lot of activity so we're sending it to a different discord channel.
+        // userstyles is a monorepo with a lot of activity so we're adding a separate redirect for it.
         if repository.name == "userstyles" {
             return HookTarget::Userstyles;
         }
