@@ -7,14 +7,6 @@ _default:
 listen: 
   python3 server.py
 
-# Requires the following commands to be run first:
-#   - gh extension install cli/gh-webhook
-#   - gh auth refresh -h github.com -s admin:org_hook
-#
-# Create a development GitHub webhook and forward all webhook events to http://localhost:3000
-register_webhook:
-  gh webhook forward --events='*' --org=catppuccin-rfc --url="http://localhost:3000"
-
 # Create a new issue, close and reopen it in catppuccin-rfc/polybar
 issues:
   #!/usr/bin/env bash

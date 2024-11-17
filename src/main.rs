@@ -25,6 +25,7 @@ struct Config {
     github_webhook_secret: String,
     discord_webhook: String,
     discord_bot_webhook: String,
+    discord_userstyles_webhook: String,
     discord_error_webhook: String,
     #[serde(default = "default_port")]
     port: u16,
@@ -38,6 +39,7 @@ const fn default_port() -> u16 {
 struct DiscordHooks {
     normal: String,
     bot: String,
+    userstyles: String,
     error: String,
 }
 
@@ -72,6 +74,7 @@ async fn main() -> anyhow::Result<()> {
             discord_hooks: DiscordHooks {
                 normal: config.discord_webhook,
                 bot: config.discord_bot_webhook,
+                userstyles: config.discord_userstyles_webhook,
                 error: config.discord_error_webhook,
             },
             github_token: GithubToken(Arc::new(config.github_webhook_secret)),
@@ -92,6 +95,7 @@ async fn main() -> anyhow::Result<()> {
 enum HookTarget {
     Normal,
     Bot,
+    Userstyles,
     None,
 }
 
@@ -124,6 +128,10 @@ async fn webhook(
             info!("hook target is bot");
             &app_state.discord_hooks.bot
         }
+        HookTarget::Userstyles => {
+            info!("hook target is userstyles");
+            &app_state.discord_hooks.userstyles
+        }
         HookTarget::None => {
             info!("no target - ignoring event");
             return;
@@ -148,6 +156,11 @@ fn hook_target(event: &WebhookEvent) -> HookTarget {
     }
 
     if let Some(repository) = &event.repository {
+        // userstyles is a monorepo with a lot of activity so we're sending it to a different discord channel.
+        if repository.name == "userstyles" {
+            return HookTarget::Userstyles;
+        }
+
         if repository.private.unwrap_or(false) {
             info!("ignoring private repository event");
             return HookTarget::None;
