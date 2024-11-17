@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.0](https://github.com/catppuccin/rockdove/releases/tag/2.0.0) - 2024-11-17
+
+
+### 🚀 Features
+
+- Banish `catppuccin/userstyles` to the shadow realm ([#37](https://github.com/catppuccin/rockdove/issues/37)) ([97aa358](https://github.com/catppuccin/rockdove/commit/97aa358))
+
+  > banish `catppuccin/userstyles` to the shadow realm ([#37](https://github.com/catppuccin/rockdove/issues/37))
+
+
+
+
 ## [v1.2.1](https://github.com/catppuccin/rockdove/releases/tag/v1.2.1) - 2024-10-05
 
 
