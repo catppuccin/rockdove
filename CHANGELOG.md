@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0](https://github.com/catppuccin/rockdove/releases/tag/2.1.0) - 2025-04-18
+
+
+### 🚀 Features
+
+- Detect different closed issue states ([#39](https://github.com/catppuccin/rockdove/issues/39)) ([9596e6e](https://github.com/catppuccin/rockdove/commit/9596e6e))
+
+
+
 ## [2.0.0](https://github.com/catppuccin/rockdove/releases/tag/2.0.0) - 2024-11-17
 
 
