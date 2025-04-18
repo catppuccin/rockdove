@@ -1,6 +1,9 @@
-use octocrab::models::webhook_events::{
-    payload::{IssuesWebhookEventAction, IssuesWebhookEventPayload},
-    WebhookEvent,
+use octocrab::models::{
+    issues::IssueStateReason,
+    webhook_events::{
+        payload::{IssuesWebhookEventAction, IssuesWebhookEventPayload},
+        WebhookEvent,
+    },
 };
 
 use crate::{
@@ -37,7 +40,17 @@ pub fn make_embed(
                 })?;
                 format!("assigned to {}", assignee.login)
             }
-            IssuesWebhookEventAction::Closed => "closed".to_string(),
+            IssuesWebhookEventAction::Closed => {
+                specifics.issue.state_reason.as_ref().map_or_else(
+                    || "closed".to_string(),
+                    |state_reason| match state_reason {
+                        IssueStateReason::NotPlanned => "closed as not planned".to_string(),
+                        IssueStateReason::Reopened => "reopened".to_string(),
+                        IssueStateReason::Duplicate => "closed as duplicate".to_string(),
+                        _ => "closed".to_string(),
+                    },
+                )
+            }
             IssuesWebhookEventAction::Locked => "locked".to_string(),
             IssuesWebhookEventAction::Opened => "opened".to_string(),
             IssuesWebhookEventAction::Pinned => "pinned".to_string(),
@@ -76,6 +89,8 @@ mod tests {
     #[parameterized(
         opened = { "opened" },
         closed = { "closed" },
+        closed_as_duplicate = { "closed_as_duplicate" },
+        closed_as_not_planned = { "closed_as_not_planned" },
         reopened = { "reopened" }
       )]
     fn snapshot(event_type: &str) {

@@ -27,23 +27,23 @@ nursery = "warn"
 cargo = "warn"
 
 [dependencies]
-anyhow = "1.0.86"
-axum = "0.7.7"
-axum-github-webhook-extract = "0.2.0"
-catppuccin = "2.4.0"
+anyhow = "1.0.98"
+axum = "0.8.3"
+axum-github-webhook-extract = "0.3.0"
+catppuccin = "2.5.1"
 envy = "0.4.2"
-octocrab = "0.41.0"
-reqwest = { version = "0.12.8", features = ["json"] }
-serde = "1.0.203"
-serde_json = "1.0.117"
-thiserror = "1.0.64"
-tokio = { version = "1.38.0", features = ["full"] }
-tower-http = { version = "0.6.1", features = ["trace"] }
-tracing = "0.1.40"
-tracing-subscriber = "0.3.18"
+octocrab = "0.44.0"
+reqwest = { version = "0.12.15", features = ["json"] }
+serde = "1.0.219"
+serde_json = "1.0.140"
+thiserror = "2.0.12"
+tokio = { version = "1.44.2", features = ["full"] }
+tower-http = { version = "0.6.2", features = ["trace"] }
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
 
 [dev-dependencies]
-insta = { version = "1.40.0", features = ["yaml"] }
+insta = { version = "1.42.2", features = ["yaml"] }
 yare = "3.0.0"
 
 # insta recommends to do this so that it's more "fun" to use, among other things
