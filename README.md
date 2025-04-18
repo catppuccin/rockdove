@@ -63,7 +63,7 @@ Follow the steps below, replacing `<tag>` with the version (e.g. `2.1.0`) you wa
 3. Add, commit and push your changes, the commit message is important so that git cliff doesn't include it in future changelogs:
    
    ```sh
-   git commit -am "chore(release): prepare for v<tag>
+   git commit -am "chore(release): prepare for v<tag>"
    git push
    ```
 
