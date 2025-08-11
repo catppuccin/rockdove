@@ -1,8 +1,8 @@
 use octocrab::models::webhook_events::{
+    WebhookEvent,
     payload::{
         PullRequestReviewCommentWebhookEventAction, PullRequestReviewCommentWebhookEventPayload,
     },
-    WebhookEvent,
 };
 
 use crate::{

@@ -1,4 +1,4 @@
-use octocrab::models::webhook_events::{payload::CommitCommentWebhookEventPayload, WebhookEvent};
+use octocrab::models::webhook_events::{WebhookEvent, payload::CommitCommentWebhookEventPayload};
 
 use crate::{
     colors::COMMIT_COLOR,
