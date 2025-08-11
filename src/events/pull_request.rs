@@ -106,10 +106,10 @@ pub fn make_embed(
             .as_str(),
     );
 
-    if matches!(specifics.action, PullRequestWebhookEventAction::Opened) {
-        if let Some(ref body) = specifics.pull_request.body {
-            embed.description(body);
-        }
+    if matches!(specifics.action, PullRequestWebhookEventAction::Opened)
+        && let Some(ref body) = specifics.pull_request.body
+    {
+        embed.description(body);
     }
 
     embed.color(PULL_REQUEST_COLOR);

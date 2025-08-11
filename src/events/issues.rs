@@ -69,10 +69,10 @@ pub fn make_embed(
 
     embed.url(specifics.issue.html_url.as_str());
 
-    if matches!(specifics.action, IssuesWebhookEventAction::Opened) {
-        if let Some(ref body) = specifics.issue.body {
-            embed.description(body);
-        }
+    if matches!(specifics.action, IssuesWebhookEventAction::Opened)
+        && let Some(ref body) = specifics.issue.body
+    {
+        embed.description(body);
     }
 
     embed.color(ISSUE_COLOR);

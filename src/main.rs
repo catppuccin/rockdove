@@ -99,6 +99,7 @@ enum HookTarget {
     None,
 }
 
+#[allow(clippy::cognitive_complexity)]
 async fn webhook(
     State(app_state): State<AppState>,
     headers: HeaderMap,
@@ -149,10 +150,10 @@ async fn webhook(
 }
 
 fn hook_target(event: &WebhookEvent) -> HookTarget {
-    if let Some(sender) = &event.sender {
-        if sender.r#type == "Bot" {
-            return HookTarget::Bot;
-        }
+    if let Some(sender) = &event.sender
+        && sender.r#type == "Bot"
+    {
+        return HookTarget::Bot;
     }
 
     if let Some(repository) = &event.repository {
