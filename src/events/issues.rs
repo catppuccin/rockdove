@@ -1,8 +1,8 @@
 use octocrab::models::{
     issues::IssueStateReason,
     webhook_events::{
-        payload::{IssuesWebhookEventAction, IssuesWebhookEventPayload},
         WebhookEvent,
+        payload::{IssuesWebhookEventAction, IssuesWebhookEventPayload},
     },
 };
 

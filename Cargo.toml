@@ -3,7 +3,7 @@ name = "catppuccin-rockdove"
 version = "2.1.0"
 description = "🤖 Soothing pastel attacks for Men In The Middle"
 repository = "https://github.com/catppuccin/rockdove"
-edition = "2021"
+edition = "2024"
 keywords = [
     "axum",
     "catppuccin",

@@ -3,18 +3,18 @@ use std::sync::Arc;
 mod events;
 
 use axum::{
+    Router,
     extract::{FromRef, State},
     http::HeaderMap,
     routing::post,
-    Router,
 };
 use axum_github_webhook_extract::{GithubEvent, GithubToken};
 use colors::COLORS;
 use embed_builder::EmbedBuilder;
 use errors::RockdoveError;
-use octocrab::models::{webhook_events::WebhookEvent, Author};
+use octocrab::models::{Author, webhook_events::WebhookEvent};
 use tower_http::trace::{DefaultMakeSpan, DefaultOnResponse, TraceLayer};
-use tracing::{error, info, Level};
+use tracing::{Level, error, info};
 
 mod colors;
 mod embed_builder;
@@ -173,13 +173,14 @@ fn hook_target(event: &WebhookEvent) -> HookTarget {
 async fn send_hook(e: &serde_json::Value, hook: &str) {
     match reqwest::Client::new().post(hook).json(e).send().await {
         Err(e) => error!(%e, "failed to send hook"),
-        Ok(r) => {
-            if let Err(e) = r.error_for_status() {
+        Ok(r) => match r.error_for_status() {
+            Err(e) => {
                 error!(%e, "hook failed");
-            } else {
+            }
+            _ => {
                 info!("hook sent");
             }
-        }
+        },
     }
 }
 

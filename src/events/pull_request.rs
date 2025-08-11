@@ -1,6 +1,6 @@
 use octocrab::models::webhook_events::{
-    payload::{PullRequestWebhookEventAction, PullRequestWebhookEventPayload},
     WebhookEvent,
+    payload::{PullRequestWebhookEventAction, PullRequestWebhookEventPayload},
 };
 
 use crate::{
