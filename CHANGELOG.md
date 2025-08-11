@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [v2.1.1](https://github.com/catppuccin/rockdove/releases/tag/v2.1.1) - 2025-08-11
+
+
+### 🚜 Refactor
+
+- Update to Rust Edition 2024 ([#42](https://github.com/catppuccin/rockdove/issues/42)) ([a6c1eb2](https://github.com/catppuccin/rockdove/commit/a6c1eb2))
+
+
+### 📚 Documentation
+
+- (README): Add missing speech mark ([f9f5125](https://github.com/catppuccin/rockdove/commit/f9f5125))
+- (README): Add release steps ([#40](https://github.com/catppuccin/rockdove/issues/40)) ([5c4e4b6](https://github.com/catppuccin/rockdove/commit/5c4e4b6))
+
+
+
 ## [2.1.0](https://github.com/catppuccin/rockdove/releases/tag/2.1.0) - 2025-04-18
 
 
